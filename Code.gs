@@ -24,6 +24,10 @@ var ROSTER_ALIASES = ['학생 명단', '학생명단', '명단'];
 var SUBMIT_SHEET = '제출';   // 제출물이 기록되는 탭 이름 (없으면 자동 생성)
 var FOLDER_PROP_KEY = 'submitFolderId';
 
+// 앱(index.html)의 [선생님 설정] 비밀번호와 똑같이 적어주세요.
+// 이 값이 '📖 선생님 가이드' 탭에 안내로 표시됩니다.
+var TEACHER_PASSCODE = '1234';
+
 // ── 제출 탭의 열 순서 ────────────────────────────────────────────
 var SUBMIT_HEADERS = [
   '제출시각', '번호', '이름', '팀', '모드', '활동유형', '제목', '내용', '보고서(PDF)', '그래프'
@@ -33,9 +37,11 @@ var SUBMIT_HEADERS = [
  * 메뉴 & 초기 셋업
  *====================================================================*/
 function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('📋 보고서 앱')
-    .addItem('초기 설정 (가이드·명단·제출 탭 만들기)', 'setupSheets')
+  var ui = SpreadsheetApp.getUi();
+  var sub = ui.createMenu('📋 탐구활동 보고서')
+    .addItem('초기 설정 (가이드·명단·제출 탭 만들기)', 'setupSheets');
+  ui.createMenu('탐구활동 보고서')
+    .addSubMenu(sub)
     .addToUi();
 }
 
@@ -120,6 +126,14 @@ function ensureGuideSheet_(ss) {
   // ── 소개 ──
   band_(sh, r, '이 보고서함은 선생님 한 분만의 것입니다. 학생 명단과 제출물(PDF·그래프)은 모두 선생님 구글 계정에만 저장돼요. 아래 4단계를 한 번만 하면 됩니다. (약 3분)',
     { bg: '#E8EAF6', fg: '#303F9F', size: 10, height: 48 });
+  r++;
+
+  // ── 선생님 설정 비밀번호 (학생에게 비공개) ──
+  band_(sh, r, '🔑  앱 [선생님 설정] 비밀번호 :   ' + TEACHER_PASSCODE,
+    { bg: '#FFE082', fg: '#5D4037', size: 13, bold: true, height: 38 });
+  r++;
+  band_(sh, r, '학생이 설정에 들어가지 못하게 막는 비밀번호예요. 학생에게는 알려주지 마세요. (앱에서 [선생님 설정]을 열 때 입력)',
+    { bg: '#FFF8E1', fg: '#8A6D3B', size: 9, height: 26 });
   r++;
   r = gap_(sh, r);
 
@@ -273,7 +287,7 @@ function doPost(e) {
 function getRoster_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = getRosterSheet_(ss);
-  if (!sh) throw new Error('“학생 명단” 탭이 없어요. 메뉴 ▸ 📋 보고서 앱 ▸ 초기 설정을 눌러 주세요.');
+  if (!sh) throw new Error('“학생 명단” 탭이 없어요. 메뉴 ▸ 탐구활동 보고서 ▸ 📋 탐구활동 보고서 ▸ 초기 설정을 눌러 주세요.');
 
   var values = sh.getDataRange().getValues();
   if (values.length < 2) return [];
