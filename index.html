@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>과학탐구 활동 보고서 (5-6학년용)</title>
+  <title>과학탐구 활동 보고서 (3-4학년용)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Gaegu:wght@400;700&display=swap" rel="stylesheet" />
@@ -35,6 +35,10 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", sans-serif;
       overscroll-behavior: none;
     }
+
+    /* 스크롤은 되지만 스크롤바는 숨김 */
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
 
     /* ───── 가로 모드 전제 / 세로 모드 회전 안내 ─────
        작은 화면(폰·소형 태블릿)이 세로일 때만 안내. 큰 화면(데스크톱)은 무시. */
@@ -351,12 +355,25 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight
   const textareaRef = useRef(null);
 
   useLayoutEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${scrollHeight}px`;
-    }
-  }, [value]);
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const measure = () => {
+      ta.style.height = 'auto';
+      let h = ta.scrollHeight;
+      // 값이 비어 있으면 예시(placeholder) 전체가 보이도록 높이를 맞춘다.
+      if (!value && placeholder) {
+        ta.value = placeholder;
+        ta.style.height = 'auto';
+        h = Math.max(h, ta.scrollHeight);
+        ta.value = '';
+        ta.style.height = 'auto';
+      }
+      ta.style.height = `${h}px`;
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [value, placeholder]);
 
   return (
     <textarea
@@ -457,67 +474,6 @@ const LearningView = ({ activities, onStartReport, onBack }) => {
         '다른 기준으로 다시 한번 나누어 볼 수도 있어요. 😉'
       ]
     },
-    '실험': {
-      title: '실험 (Experiment)',
-      icon: FlaskConical,
-      color: 'text-indigo-500',
-      desc: (
-        <>
-          궁금한 점을 해결하기 위해 가설을 세우고, 계획에 따라 변인을 통제하며 직접 해보며 확인하는 활동이에요.
-          <div className="mt-3 p-3 bg-indigo-50 rounded-xl border border-indigo-100 shadow-sm">
-            <div className="font-title text-indigo-800 mb-2 flex items-center justify-center gap-2 text-base sm:text-lg">
-               <span className="text-orange-500 text-lg">🔄</span> 탐구 과정
-            </div>
-            <div className="font-body flex flex-wrap justify-center items-center gap-1 text-xs sm:text-sm text-slate-700">
-              <span className="bg-white px-2 py-1 rounded-lg border border-indigo-100 text-indigo-600 shadow-sm">가설 설정</span>
-              <span className="text-slate-300 mx-0.5">➤</span>
-              <span className="bg-white px-2 py-1 rounded-lg border border-indigo-100 text-indigo-600 shadow-sm">변인 통제</span>
-              <span className="text-slate-300 mx-0.5">➤</span>
-              <span className="bg-white px-2 py-1 rounded-lg border border-indigo-100 text-indigo-600 shadow-sm">자료 변환</span>
-              <span className="text-slate-300 mx-0.5">➤</span>
-              <span className="bg-white px-2 py-1 rounded-lg border border-indigo-100 text-indigo-600 shadow-sm">결론 도출</span>
-            </div>
-          </div>
-        </>
-      ),
-      tips: [
-        '궁금한 점을 바탕으로 "가설(예상)"을 세워보세요.',
-        '다르게 할 조건과 같게 할 조건을 구별하세요. (변인 통제)',
-        '준비물을 챙기고 순서에 따라 차근차근 진행해요.',
-        '결과를 표와 그래프로 나타내요. (자료 변환)',
-        '가설과 결과를 비교하여 결론을 내려요. (결론 도출)'
-      ]
-    },
-    '조사': {
-      title: '조사 (Investigation)',
-      icon: ClipboardList,
-      color: 'text-orange-500',
-      desc: (
-        <>
-          책, 인터넷, 전문가 인터뷰, 견학 등을 통해 필요한 정보를 찾아 정리하는 활동이에요.
-          <div className="mt-3 p-3 bg-orange-50 rounded-xl border border-orange-100 shadow-sm">
-            <div className="font-title text-orange-800 mb-2 flex items-center justify-center gap-2 text-base sm:text-lg">
-               <span className="text-indigo-500 text-lg">🔄</span> 탐구 과정
-            </div>
-            <div className="font-body flex flex-wrap justify-center items-center gap-1 text-xs sm:text-sm text-slate-700">
-              <span className="bg-white px-2 py-1 rounded-lg border border-orange-100 text-orange-600 shadow-sm">가설 설정</span>
-              <span className="text-slate-300 mx-0.5">➤</span>
-              <span className="bg-white px-2 py-1 rounded-lg border border-orange-100 text-orange-600 shadow-sm">정보 탐색</span>
-              <span className="text-slate-300 mx-0.5">➤</span>
-              <span className="bg-white px-2 py-1 rounded-lg border border-orange-100 text-orange-600 shadow-sm">자료 변환</span>
-              <span className="text-slate-300 mx-0.5">➤</span>
-              <span className="bg-white px-2 py-1 rounded-lg border border-orange-100 text-orange-600 shadow-sm">결론 도출</span>
-            </div>
-          </div>
-        </>
-      ),
-      tips: [
-        '알고 싶은 주제나 질문을 명확하게 정하세요.',
-        '어디서 정보를 얻을지 계획하세요.',
-        '찾은 정보 중 중요한 내용을 간추려 정리해요.',
-        '출처(책 제목, 사이트 주소 등)를 꼭 밝혀주세요.'
-      ]
-    }
   };
 
   // 선택한 활동 목록 (없으면 관찰만)
@@ -647,20 +603,33 @@ const TeacherSetupScreen = ({ initialUrl, onSave, onCancel, canCancel }) => {
   const trimmed = url.trim();
   const valid = /^https:\/\/script\.google\.com\//.test(trimmed);
 
-  // 학생용 공유 링크: 현재 앱 주소 + ?api=웹앱URL
+  // 저장 여부와 상관없이, 입력한 URL로 만들어지는 "학생용 링크"를 미리 보여준다.
   const studentLink = valid
     ? `${window.location.origin}${window.location.pathname}?api=${encodeURIComponent(trimmed)}`
     : '';
 
-  const copyLink = async () => {
+  const copyStudentLink = async () => {
     if (!studentLink) return;
     try {
       await navigator.clipboard.writeText(studentLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
     } catch (e) {
-      window.prompt('아래 링크를 복사해서 학생들에게 전달하세요:', studentLink);
+      // 클립보드 API가 막힌 환경(구형 브라우저 등) 대비
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = studentLink;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e2) {
+        window.prompt('아래 학생용 링크를 복사하세요.', studentLink);
+        return;
+      }
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -709,21 +678,34 @@ const TeacherSetupScreen = ({ initialUrl, onSave, onCancel, canCancel }) => {
             </div>
           )}
 
-          {/* 학생용 링크 (URL이 유효할 때) */}
+          {/* 학생용 링크 미리보기 + 복사 — 이 링크를 그대로 학생에게 공유 */}
           {valid && (
             <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
-              <div className="text-[11px] font-bold text-emerald-700 mb-1.5 flex items-center gap-1.5">
-                <Users size={13} /> 학생용 링크 (이 링크로 들어오면 자동 연결돼요)
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 mb-2">
+                <Users size={14} className="flex-shrink-0" />
+                학생에게 공유할 링크 (이 링크를 받은 학생은 설정 없이 바로 이름 선택)
               </div>
-              <div className="text-[11px] text-slate-600 bg-white rounded-lg p-2 break-all border border-emerald-100 mb-2">
-                {studentLink}
+              <div className="flex items-stretch gap-2">
+                <input
+                  type="text"
+                  value={studentLink}
+                  readOnly
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 min-w-0 bg-white border-2 border-emerald-200 rounded-xl px-3 py-2 text-[11px] font-medium text-slate-700 focus:outline-none focus:border-emerald-400 break-all"
+                />
+                <button
+                  onClick={copyStudentLink}
+                  className={`flex items-center justify-center gap-1 px-3 rounded-xl text-xs font-black whitespace-nowrap transition-all active:scale-95 shadow-sm ${
+                    copied ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                  }`}
+                >
+                  {copied ? <><Check size={14} /> 복사됨</> : <><Copy size={14} /> 복사</>}
+                </button>
               </div>
-              <button
-                onClick={copyLink}
-                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-black bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all"
-              >
-                {copied ? <><Check size={14} /> 복사됐어요!</> : <><Copy size={14} /> 학생용 링크 복사</>}
-              </button>
+              <div className="text-[10px] text-emerald-600 mt-2 leading-relaxed">
+                ⚠️ 맨 주소가 아니라 <b>위 링크(<code>?api=</code> 포함)를 그대로</b> 공유해야 다른 컴퓨터·태블릿에서도 명단이 보여요.
+                저장하면 이 주소가 자동으로 적용됩니다.
+              </div>
             </div>
           )}
 
@@ -847,17 +829,6 @@ const StudentSelectionScreen = ({ configured, students, loading, error, onRetry,
 
   return (
     <div className="fixed inset-0 z-[100] bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex flex-col p-4 sm:p-6 overflow-y-auto">
-      {/* 우측 상단 설정 버튼 — 선생님이 배포 주소를 입력/변경 */}
-      {onOpenSettings && (
-        <button
-          onClick={onOpenSettings}
-          className="fixed top-3 right-3 z-[110] inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white/90 backdrop-blur-sm text-slate-500 border-2 border-slate-200 shadow-sm hover:text-indigo-600 hover:border-indigo-300 active:scale-95 transition-all"
-          title="선생님 설정 (배포 주소 입력)"
-        >
-          <Settings size={15} /> 선생님 설정
-        </button>
-      )}
-
       <div className="max-w-md mx-auto w-full flex flex-col flex-1 justify-center">
        <div className="bg-white rounded-3xl border-2 border-indigo-300 shadow-xl p-6 sm:p-8">
         <div className="text-center mb-6">
@@ -865,45 +836,26 @@ const StudentSelectionScreen = ({ configured, students, loading, error, onRetry,
             <BookOpenCheck className="text-indigo-600 w-7 h-7" />
           </div>
           <div className="text-[10px] sm:text-xs font-bold text-indigo-500 tracking-widest uppercase mb-1">
-            나의 과학탐구활동 보고서 · 5-6학년용 🔬
+            나의 과학탐구활동 보고서 · 3-4학년용 🌱
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-800">
-            {configured ? '이름을 선택해 주세요' : '시작 준비'}
+            이름을 선택해 주세요
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            {!configured
-              ? '먼저 선생님이 스프레드시트를 연결해야 해요.'
-              : (hasTeams
-                  ? '팀을 먼저 고른 뒤 이름을 선택해요.'
-                  : '드롭다운에서 본인 이름을 선택해 시작합니다.')}
+            {hasTeams
+              ? '팀을 먼저 고른 뒤 이름을 선택해요.'
+              : '드롭다운에서 본인 이름을 선택해 시작합니다.'}
           </p>
         </div>
 
-        {/* 아직 연결 전: 선생님에게 설정 안내 */}
-        {!configured && (
-          <div className="bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-5 text-center">
-            <Settings className="text-indigo-400 mx-auto mb-2" size={30} />
-            <div className="text-sm font-bold text-slate-700 mb-1">연결된 스프레드시트가 없어요</div>
-            <div className="text-xs text-slate-500 mb-3 leading-relaxed">
-              선생님: 오른쪽 위 <b>「선생님 설정」</b>을 눌러<br />Apps Script 배포 주소를 입력해 주세요.
-            </div>
-            <button
-              onClick={onOpenSettings}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 active:scale-95"
-            >
-              <Settings size={14} /> 선생님 설정 열기
-            </button>
-          </div>
-        )}
-
-        {configured && loading && (
+        {loading && (
           <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-10">
             <Loader2 className="animate-spin" size={32} />
             <span className="text-sm font-bold">학생 명단을 불러오는 중…</span>
           </div>
         )}
 
-        {configured && !loading && error && (
+        {!loading && error && (
           <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 text-center">
             <AlertCircle className="text-red-500 mx-auto mb-2" size={32} />
             <div className="text-sm font-bold text-red-700 mb-1">명단을 불러올 수 없어요</div>
@@ -920,7 +872,7 @@ const StudentSelectionScreen = ({ configured, students, loading, error, onRetry,
           </div>
         )}
 
-        {configured && !loading && !error && (
+        {!loading && !error && (
           <div className="space-y-4">
             {hasTeams && (
               <div>
@@ -960,6 +912,11 @@ const StudentSelectionScreen = ({ configured, students, loading, error, onRetry,
               {hasTeams && !selectedTeam && (
                 <div className="text-[11px] text-slate-400 mt-1">팀을 먼저 선택해 주세요.</div>
               )}
+              {students.length === 0 && (
+                <div className="text-[11px] text-slate-400 mt-1">
+                  아직 명단이 없어요. 선생님께 문의하세요.
+                </div>
+              )}
             </div>
 
             <button
@@ -975,6 +932,19 @@ const StudentSelectionScreen = ({ configured, students, loading, error, onRetry,
             </button>
           </div>
         )}
+
+        {/* 선생님 설정 — 눈에 띄지 않게, 박스 하단에 */}
+        {onOpenSettings && (
+          <div className="mt-5 pt-4 border-t border-slate-100 text-center">
+            <button
+              onClick={onOpenSettings}
+              className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+              title="선생님 설정 (배포 주소 입력)"
+            >
+              <Settings size={11} /> 선생님 설정
+            </button>
+          </div>
+        )}
        </div>
       </div>
     </div>
@@ -986,17 +956,10 @@ const CoverSection = ({ data, onUpdate, onToggleActivity, onStart, onLearn, isSt
     onUpdate({ ...data, [field]: value });
   };
 
-  const [activeTab, setActiveTab] = useState('basic');
-
   const basicActivities = [
     { id: 'observation', label: '관찰', icon: Eye, color: 'text-green-500', selBg: 'bg-green-100', selBorder: 'border-green-400' },
     { id: 'measurement', label: '측정', icon: Ruler, color: 'text-blue-500', selBg: 'bg-blue-100', selBorder: 'border-blue-400' },
     { id: 'classification', label: '분류', icon: LayoutGrid, color: 'text-purple-500', selBg: 'bg-purple-100', selBorder: 'border-purple-400' },
-  ];
-
-  const integratedActivities = [
-    { id: 'experiment', label: '실험', icon: FlaskConical, color: 'text-indigo-500', selBg: 'bg-indigo-100', selBorder: 'border-indigo-400' },
-    { id: 'investigation', label: '조사', icon: ClipboardList, color: 'text-orange-500', selBg: 'bg-orange-100', selBorder: 'border-orange-400' }
   ];
 
   const selectedTypes = Array.isArray(data.activityTypes) ? data.activityTypes : [];
@@ -1006,197 +969,117 @@ const CoverSection = ({ data, onUpdate, onToggleActivity, onStart, onLearn, isSt
     <div 
       id="report-header" 
       className={`bg-white border-4 border-indigo-200 shadow-xl overflow-hidden relative group transition-all duration-700 ease-in-out flex flex-col items-center
-        ${isStarted ? 'rounded-3xl mb-8 sm:mb-12 p-6 justify-center' : 'fixed inset-0 z-[100] m-0 rounded-none h-[100dvh] w-full p-4 flex justify-between overflow-y-auto'}`}
+        ${isStarted ? 'rounded-3xl mb-8 sm:mb-12 p-6 justify-center' : 'fixed inset-0 z-[100] m-0 rounded-none h-[100dvh] w-full p-3 sm:p-5 justify-center overflow-hidden'}`}
     >
        {/* Decorative Top Bar */}
        <div className={`bg-indigo-400 w-full absolute top-0 left-0 transition-all duration-700 ${isStarted ? 'h-4' : 'h-2 sm:h-3'}`}></div>
        
-       <div className={`flex flex-col items-center text-center w-full max-w-3xl transition-all duration-500 ${!isStarted ? 'flex-1 justify-center gap-1 sm:gap-2 animate-fade-in-up' : 'my-auto'}`}>
-         
+       <div className={`flex flex-col items-center text-center w-full transition-all duration-500 ${!isStarted ? 'max-w-xl flex-1 justify-center gap-3 animate-fade-in-up' : 'max-w-3xl my-auto'}`}>
+
          {/* Subtitle */}
-         <div className={`font-bold text-indigo-500 tracking-widest uppercase mb-1 transition-all ${isStarted ? 'text-[10px] sm:text-xs' : 'text-[10px] sm:text-xs mt-2'}`}>
-           나의 과학탐구활동 보고서 · 5-6학년용 🔬
+         <div className="font-bold text-indigo-500 tracking-widest uppercase text-[10px] sm:text-xs mb-1">
+           나의 과학탐구활동 보고서 · 3-4학년용 🌱
          </div>
 
-         {/* Icon - Reduced Size */}
-         <div className={`bg-indigo-100 rounded-full shadow-inner mb-2 transition-all duration-500 flex items-center justify-center 
-           ${isStarted ? 'p-2 w-10 h-10' : 'p-3 w-12 h-12 sm:w-14 sm:h-14 mt-0'}`}>
-           <BookOpen className={`text-indigo-600 ${isStarted ? 'w-5 h-5' : 'w-6 h-6 sm:w-7 sm:h-7'}`} />
+         {/* Icon */}
+         <div className={`bg-indigo-100 rounded-full shadow-inner mb-1 flex items-center justify-center ${isStarted ? 'p-2 w-10 h-10' : 'p-2.5 w-11 h-11 sm:w-12 sm:h-12'}`}>
+           <BookOpen className={`text-indigo-600 ${isStarted ? 'w-5 h-5' : 'w-6 h-6'}`} />
          </div>
 
-         {/* Title Input */}
+         {/* Title — 시작 전엔 밑줄, 시작 후엔 밑줄 없이 (이미 작성됨) */}
          <AutoResizeTextarea
             value={data.title}
             onChange={(e) => handleChange('title', e.target.value)}
-            className={`w-full text-center font-black text-slate-800 bg-transparent border-b-2 border-transparent hover:border-indigo-100 focus:border-indigo-400 focus:bg-indigo-50/30 rounded-lg transition-all placeholder:text-slate-300 leading-tight
-              ${isStarted ? 'text-xl sm:text-2xl min-h-[36px] mb-0' : 'text-xl sm:text-3xl min-h-[40px] sm:min-h-[50px] p-0'}`}
-            placeholder="탐구 주제를 질문으로 써요"
+            minHeight={isStarted ? "40px" : "46px"}
+            className={`w-full text-center font-black text-slate-800 rounded-lg transition-all placeholder:text-slate-400 placeholder:font-bold leading-tight ${
+              isStarted
+                ? 'bg-transparent border-none text-xl sm:text-2xl'
+                : 'bg-indigo-50/40 border-b-[3px] border-indigo-300 hover:border-indigo-400 focus:border-indigo-500 focus:bg-indigo-50/60 text-2xl sm:text-3xl px-3 py-1'
+            }`}
+            placeholder="여기에 탐구 주제를 질문으로 써요"
          />
 
-         {/* Info Grid - HIDDEN when started (Report Mode) to reduce clutter */}
-         {/* We use a specific class 'cover-info-grid' to target it during PDF generation */}
-         <div className={`w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm cover-info-grid transition-all duration-500 ${isStarted ? 'hidden opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
-           
-            {/* Team Name */}
-            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100 hover:border-indigo-200 transition-colors">
-               <div className="bg-white p-1 rounded-md text-indigo-500 shadow-sm">
-                 <Users size={14} />
-               </div>
-               <div className="flex-1 flex flex-col text-left">
-                 <span className="text-[9px] font-bold text-slate-400 uppercase">팀명 (Team)</span>
-                 <input 
-                   type="text" 
-                   value={data.team}
-                   onChange={(e) => handleChange('team', e.target.value)}
-                   className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-300 w-full text-sm"
-                   placeholder="멋진 팀 이름"
-                 />
-               </div>
-            </div>
-
-            {/* Name */}
-            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100 hover:border-green-200 transition-colors">
-               <div className="bg-white p-1 rounded-md text-green-500 shadow-sm">
-                 <User size={14} />
-               </div>
-               <div className="flex-1 flex flex-col text-left">
-                 <span className="text-[9px] font-bold text-slate-400 uppercase">이름 (Name)</span>
-                 <input 
-                   type="text" 
-                   value={data.author}
-                   onChange={(e) => handleChange('author', e.target.value)}
-                   className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-300 w-full text-sm"
-                   placeholder="이름"
-                 />
-               </div>
-            </div>
-
-            {/* Period */}
-            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100 hover:border-orange-200 transition-colors sm:col-span-2">
-               <div className="bg-white p-1 rounded-md text-orange-500 shadow-sm">
-                 <Calendar size={14} />
-               </div>
-               <div className="flex-1 flex flex-col text-left">
-                 <span className="text-[9px] font-bold text-slate-400 uppercase">탐구 기간</span>
-                 <input 
-                   type="text" 
-                   value={data.period}
-                   onChange={(e) => handleChange('period', e.target.value)}
-                   className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-300 w-full text-sm"
-                   placeholder="2026.01.01 ~ 2026.01.05" 
-                 />
-               </div>
-            </div>
-         </div>
-
-         {/* Activity Selection - 다중 선택 (기초)/단일 선택 (통합) */}
-         <div className={`w-full max-w-lg bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden flex flex-col flex-1 min-h-0 transition-all duration-500 mt-2 ${isStarted ? 'hidden opacity-0 h-0' : 'opacity-100 h-auto'}`}>
-            <div className="flex border-b border-slate-100 flex-shrink-0">
-               <button
-                 onClick={() => setActiveTab('basic')}
-                 className={`flex-1 py-2 text-xs sm:text-sm font-bold transition-colors ${activeTab === 'basic' ? 'bg-indigo-50 text-indigo-600 border-b-2 border-indigo-500' : 'text-slate-400 hover:bg-slate-50'}`}
-               >
-                 🌱 기초 탐구 활동 <span className="font-normal text-indigo-400">(여러 개)</span>
-               </button>
-               <button
-                 onClick={() => setActiveTab('integrated')}
-                 className={`flex-1 py-2 text-xs sm:text-sm font-bold transition-colors ${activeTab === 'integrated' ? 'bg-indigo-50 text-indigo-600 border-b-2 border-indigo-500' : 'text-slate-400 hover:bg-slate-50'}`}
-               >
-                 🔬 통합 탐구 활동 <span className="font-normal text-indigo-400">(택1)</span>
-               </button>
-            </div>
-
-            <div className="p-2 bg-slate-50/50 flex-shrink-0">
-               {activeTab === 'basic' ? (
-                 <div className="grid grid-cols-3 gap-2 w-full">
-                   {basicActivities.map(act => {
-                     const selected = selectedTypes.includes(act.label);
-                     return (
-                       <button
-                         key={act.id}
-                         onClick={() => onToggleActivity(act.label)}
-                         className={`relative flex flex-col items-center justify-center p-2 rounded-lg border-2 shadow-sm transition-all active:scale-95 h-16 sm:h-20 ${
-                           selected
-                             ? `${act.selBg} ${act.selBorder} shadow-md ring-2 ring-offset-1 ring-indigo-200`
-                             : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'
-                         }`}
-                       >
-                         {selected && (
-                           <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center shadow">✓</div>
-                         )}
-                         <act.icon size={20} className={`mb-1 ${act.color}`} />
-                         <span className="text-[10px] sm:text-xs font-bold text-slate-700">{act.label}</span>
-                       </button>
-                     );
-                   })}
-                 </div>
-               ) : (
-                 <div className="grid grid-cols-2 gap-2 w-full">
-                    {integratedActivities.map(act => {
-                      const selected = selectedTypes.includes(act.label);
-                      return (
-                        <button
-                          key={act.id}
-                          onClick={() => onToggleActivity(act.label)}
-                          className={`relative flex flex-col items-center justify-center p-2 rounded-lg border-2 shadow-sm transition-all active:scale-95 h-16 sm:h-20 ${
-                            selected
-                              ? `${act.selBg} ${act.selBorder} shadow-md ring-2 ring-offset-1 ring-indigo-200`
-                              : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'
-                          }`}
-                        >
-                          {selected && (
-                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center shadow">✓</div>
-                          )}
-                          <act.icon size={20} className={`mb-1 ${act.color}`} />
-                          <span className="text-[10px] sm:text-xs font-bold text-slate-700">{act.label}</span>
-                        </button>
-                      );
-                   })}
-                 </div>
-               )}
-            </div>
-
-            {/* 학습하기 + 시작하기 버튼 */}
-            <div className="p-2 border-t border-slate-100 flex-shrink-0 flex items-stretch gap-2">
-               <button
-                 onClick={onLearn}
-                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-black bg-white text-indigo-600 border-2 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 transition-all shadow-sm active:scale-95 whitespace-nowrap"
-                 title="탐구활동 내용을 먼저 살펴봐요"
-               >
-                 <BookOpenCheck size={16} /> 학습하기
-               </button>
-               <button
-                 onClick={onStart}
-                 disabled={!canStart}
-                 className={`flex-1 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
-                   canStart
-                     ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'
-                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                 }`}
-               >
-                 <ArrowRightCircle size={16} />
-                 {canStart
-                   ? `시작하기${selectedTypes.length > 1 ? ` (${selectedTypes.length}개 활동)` : ''}`
-                   : '활동을 선택하세요'}
-               </button>
-            </div>
-         </div>
-
-         {/* Footer text only visible on landing */}
+         {/* 기본 정보 — 사각 박스 (시작 전에만) */}
          {!isStarted && (
-            <div className="text-[9px] sm:text-[10px] text-slate-400 mt-1 font-medium flex-shrink-0">
-               기초 활동(관찰·측정·분류)은 동시에, 통합 활동(실험·조사)은 하나만 선택할 수 있어요.
+           <div className="w-full grid grid-cols-3 gap-2 text-sm cover-info-grid mt-2">
+              <div className="bg-white border-2 border-slate-200 rounded-xl px-3.5 py-2.5 flex flex-col text-left focus-within:border-indigo-400 transition-colors">
+                 <span className="text-xs sm:text-sm font-extrabold text-slate-600 flex items-center gap-1.5 mb-1"><Users size={14} className="text-indigo-500" /> 팀명</span>
+                 <input type="text" value={data.team} onChange={(e) => handleChange('team', e.target.value)}
+                    className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-400 w-full text-base"
+                    placeholder="멋진 팀 이름" />
+              </div>
+              <div className="bg-white border-2 border-slate-200 rounded-xl px-3.5 py-2.5 flex flex-col text-left focus-within:border-green-400 transition-colors">
+                 <span className="text-xs sm:text-sm font-extrabold text-slate-600 flex items-center gap-1.5 mb-1"><User size={14} className="text-green-500" /> 이름</span>
+                 <input type="text" value={data.author} onChange={(e) => handleChange('author', e.target.value)}
+                    className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-400 w-full text-base"
+                    placeholder="이름" />
+              </div>
+              <div className="bg-white border-2 border-slate-200 rounded-xl px-3.5 py-2.5 flex flex-col text-left focus-within:border-orange-400 transition-colors">
+                 <span className="text-xs sm:text-sm font-extrabold text-slate-600 flex items-center gap-1.5 mb-1"><Calendar size={14} className="text-orange-500" /> 탐구 기간</span>
+                 <input type="text" value={data.period} onChange={(e) => handleChange('period', e.target.value)}
+                    className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-400 w-full text-base"
+                    placeholder="2026.01.01 ~ 01.05" />
+              </div>
+           </div>
+         )}
+
+         {/* 활동 선택 (시작 전에만) */}
+         {!isStarted && (
+           <div className="w-full bg-white rounded-2xl shadow-lg border-2 border-indigo-300 overflow-hidden flex flex-col mt-2">
+              <div className="py-2.5 text-center text-sm font-black text-white bg-indigo-500 border-b-2 border-indigo-300">
+                 🌱 어떤 탐구 활동을 할까요? <span className="font-bold text-indigo-100">(여러 개 선택)</span>
+              </div>
+              <div className="p-2.5 bg-slate-50/50">
+                 <div className="grid grid-cols-3 gap-2 w-full">
+                    {basicActivities.map(act => {
+                       const selected = selectedTypes.includes(act.label);
+                       return (
+                          <button key={act.id} onClick={() => onToggleActivity(act.label)}
+                             className={`relative flex flex-col items-center justify-center p-2 rounded-xl border-2 shadow-sm transition-all active:scale-95 h-16 sm:h-20 ${
+                                selected
+                                   ? `${act.selBg} ${act.selBorder} shadow-md ring-2 ring-offset-1 ring-indigo-200`
+                                   : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'
+                             }`}>
+                             {selected && (<div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center shadow">✓</div>)}
+                             <act.icon size={22} className={`mb-1 ${act.color}`} />
+                             <span className="text-xs font-bold text-slate-700">{act.label}</span>
+                          </button>
+                       );
+                    })}
+                 </div>
+              </div>
+              <div className="p-2.5 border-t border-slate-100 flex items-stretch gap-2">
+                 <button onClick={onLearn}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-black bg-white text-indigo-600 border-2 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+                    title="탐구활동 내용을 먼저 살펴봐요">
+                    <BookOpenCheck size={16} /> 학습하기
+                 </button>
+                 <button onClick={onStart} disabled={!canStart}
+                    className={`flex-1 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
+                       canStart
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'
+                          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}>
+                    <ArrowRightCircle size={16} />
+                    {canStart ? `시작하기${selectedTypes.length > 1 ? ` (${selectedTypes.length}개)` : ''}` : '활동을 선택하세요'}
+                 </button>
+              </div>
+           </div>
+         )}
+
+         {/* 안내 문구 (시작 전에만) */}
+         {!isStarted && (
+            <div className="text-[10px] text-slate-400 mt-1 font-medium">
+               관찰·측정·분류 중에서 하고 싶은 활동을 여러 개 골라도 좋아요.
             </div>
          )}
 
-         {/* Compact Badges in Header Mode */}
+         {/* 활동 배지 (시작 후) */}
          {isStarted && selectedTypes.length > 0 && (
             <div className="mt-2 inline-flex flex-wrap items-center justify-center gap-1 animate-fade-in">
                {selectedTypes.map(t => (
                   <span key={t} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold border border-indigo-100">
-                     {t === '실험' && <FlaskConical size={14} />}
                      {t === '관찰' && <Eye size={14} />}
-                     {t === '조사' && <ClipboardList size={14} />}
                      {t === '측정' && <Ruler size={14} />}
                      {t === '분류' && <LayoutGrid size={14} />}
                      {t}
@@ -1710,7 +1593,7 @@ const TextModule = ({ content, onUpdate, placeholder }) => {
       value={content || ""}
       onChange={(e) => onUpdate(e.target.value)}
       className="w-full p-3 sm:p-4 border-2 border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-blue-200 focus:border-blue-400 focus:outline-none text-slate-700 text-base sm:text-lg leading-relaxed bg-white shadow-sm placeholder:text-slate-400"
-      placeholder={placeholder || "실험을 통해 알게 된 것을 기록하세요."}
+      placeholder={placeholder || "탐구하면서 알게 된 것을 기록하세요."}
       minHeight="52px" 
     />
   );
@@ -1734,7 +1617,7 @@ const PlanModule = ({ content, onUpdate }) => {
           value={safeContent.materials}
           onChange={(e) => updateField('materials', e.target.value)}
           className="w-full p-3 border-2 border-orange-100 rounded-xl text-base focus:ring-2 focus:ring-orange-200 focus:border-orange-400 focus:outline-none bg-orange-50/30 placeholder:text-orange-300 text-slate-700"
-          placeholder="예: 물, 비커, 소금, 유리막대"
+          placeholder="예: 돋보기, 자, 줄자, 색연필, 관찰 공책"
           minHeight="50px"
         />
       </div>
@@ -1745,7 +1628,7 @@ const PlanModule = ({ content, onUpdate }) => {
           value={safeContent.steps}
           onChange={(e) => updateField('steps', e.target.value)}
           className="w-full p-3 sm:p-4 border-2 border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-blue-200 focus:border-blue-400 focus:outline-none text-slate-700 leading-relaxed text-base sm:text-lg bg-white shadow-sm"
-          placeholder="1. 비커에 물을 붓습니다.&#13;&#10;2. 소금을 한 숟가락 넣습니다."
+          placeholder="1. 강낭콩을 화분에 심고 날마다 살펴봅니다.&#13;&#10;2. 싹이 튼 날부터 줄기 길이를 자로 잽니다.&#13;&#10;3. 잎의 모양과 색깔을 그림과 글로 기록합니다."
           minHeight="52px"
         />
       </div>
@@ -1802,7 +1685,7 @@ const UnitSelector = ({ label, value, onChange }) => {
   );
 };
 
-// [Module 3] Data Analysis — 5-6학년용
+// [Module 3] Data Analysis — 3-4학년용
 // — 항상 0부터 시작 (음수 차단), X/Y축 표시, 막대·꺾은선 토글 유지
 const DataModule = ({ content, onUpdate }) => {
   const safeContent = content || {
@@ -2381,7 +2264,7 @@ const PhotoModule = ({ content, onUpdate, onEdit }) => {
               className="relative group bg-white border-2 border-slate-100 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all"
             >
               <div className="w-full bg-slate-900 group aspect-square flex items-center justify-center relative">
-                <img src={img.src} alt={`실험 사진 ${idx + 1}`} className="w-full h-full object-contain" />
+                <img src={img.src} alt={`탐구 사진 ${idx + 1}`} className="w-full h-full object-contain" />
                 
                 <div 
                   className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity tool-btn bg-black/50 p-1 rounded-lg backdrop-blur-sm z-20 cursor-pointer"
@@ -2685,7 +2568,7 @@ const App = () => {
       content: '',
       color: 'blue',
       isDeletable: false,
-      placeholder: '탐구 주제(질문)에 대한 나의 예상을 "~ 할 것이다." 형식으로 써보세요.\n예) 물이 얼면 부피가 더 커질 것이다.'
+      placeholder: '궁금한 점에 대한 나의 예상을 "~ 할 것이다." 형식으로 써보세요.\n\n예) (관찰) 강낭콩 싹은 자라면서 줄기가 점점 길어질 것이다.\n예) (측정) 우리 모둠 친구들의 한 뼘 길이는 비슷할 것이다.\n예) (분류) 주운 나뭇잎은 모양에 따라 세 무리로 나눌 수 있을 것이다.'
     },
     { 
       id: 2, 
@@ -2743,7 +2626,8 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPasscode, setShowPasscode] = useState(false);
   const [students, setStudents] = useState([]);
-  const [rosterLoading, setRosterLoading] = useState(true);
+  // 연결돼 있을 때만 처음부터 로딩 표시 (미설정이면 학생 화면을 바로 보여줌)
+  const [rosterLoading, setRosterLoading] = useState(!!SHEET_API_URL);
   const [rosterError, setRosterError] = useState(null);
   // 학생 선택은 매 접속마다 다시 받도록 localStorage에서 복원하지 않음
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -2780,17 +2664,46 @@ const App = () => {
     setApiUrl(url);        // 상태 갱신 → 재렌더
     setShowSettings(false);
     setSelectedStudent(null);
+    // 주소창에 ?api= 를 반영 → "지금 이 페이지 주소"가 곧 학생용 링크가 됨.
+    // (선생님이 이 주소를 그대로 공유하면 학생은 자동 연결됨)
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set('api', url);
+      window.history.replaceState(null, '', u.toString());
+    } catch (e) {}
     // 새 URL로 명단 로드 (위 useEffect가 apiUrl 변화로 자동 호출하지만, 같은 값 재저장 대비 명시 호출)
     setTimeout(() => loadRoster(), 0);
   };
 
   const handleSelectStudent = (student) => {
     setSelectedStudent(student);
-    setCover(prev => ({
-      ...prev,
+    setCover({
+      title: "",
+      team: student.team || '',
       author: student.name,
-      team: student.team || prev.team || '',
-    }));
+      period: "",
+      activityTypes: []
+    });
+    setBlocks([
+      {
+        id: 1,
+        type: 'text',
+        title: '🔮 가설 설정',
+        content: '',
+        color: 'blue',
+        isDeletable: false,
+        placeholder: '궁금한 점에 대한 나의 예상을 "~ 할 것이다." 형식으로 써보세요.\n\n예) (관찰) 강낭콩 싹은 자라면서 줄기가 점점 길어질 것이다.\n예) (측정) 우리 모둠 친구들의 한 뼘 길이는 비슷할 것이다.\n예) (분류) 주운 나뭇잎은 모양에 따라 세 무리로 나눌 수 있을 것이다.'
+      },
+      {
+        id: 2,
+        type: 'plan',
+        title: '📋 탐구 계획 & 준비물',
+        content: null,
+        color: 'orange',
+        isDeletable: false
+      },
+    ]);
+    setIsStarted(false);
   };
 
   const handleChangeStudent = () => {
@@ -2912,28 +2825,17 @@ const App = () => {
     ]).catch(err => console.error('Failed to load PDF libs', err));
   }, []);
 
-  // 활동 유형 토글
-  // - 관찰/측정/분류 (기초): 동시에 여러 개 선택 가능
-  // - 실험/조사 (통합): 둘 중 하나만 선택 (서로 배타적)
+  // 활동 유형 토글 — 관찰/측정/분류(기초)는 동시에 여러 개 선택 가능
   const handleToggleActivity = (type) => {
-    const integrated = ['실험', '조사'];
     setCover(prev => {
       const cur = Array.isArray(prev.activityTypes) ? prev.activityTypes : [];
-      let next;
-      if (cur.includes(type)) {
-        next = cur.filter(t => t !== type);
-      } else if (integrated.includes(type)) {
-        // 실험/조사는 다른 통합 활동을 비우고 해당 항목만 추가
-        next = cur.filter(t => !integrated.includes(t)).concat(type);
-      } else {
-        next = cur.concat(type);
-      }
+      const next = cur.includes(type) ? cur.filter(t => t !== type) : cur.concat(type);
       return { ...prev, activityTypes: next };
     });
   };
 
-  // 학습 화면에 보여줄 모든 탐구활동 (기초 → 통합 순서)
-  const ALL_ACTIVITIES = ['관찰', '측정', '분류', '실험', '조사'];
+  // 학습 화면에 보여줄 모든 탐구활동 (기초 탐구)
+  const ALL_ACTIVITIES = ['관찰', '측정', '분류'];
 
   // 표지에서 활동을 선택하고 "시작하기" → 바로 보고서 작성으로
   const handleStartFromCover = () => {
@@ -2979,7 +2881,7 @@ const App = () => {
       case 'conclusion': 
         title = "🏁 결론 및 더 알고 싶은 점"; 
         color = "purple"; 
-        placeholder = "실험 결과는 어땠나요? 예상과 같았나요?\n더 궁금해진 점이 있다면 적어보세요.";
+        placeholder = "탐구 결과는 어땠나요? 예상과 같았나요?\n더 궁금해진 점이 있다면 적어보세요.";
         type = 'text'; 
         break;
       default: title = "새로운 도구";
@@ -3346,7 +3248,7 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans pb-32 sm:pb-40 relative">
+    <div className={`bg-slate-100 font-sans relative ${isStarted ? 'min-h-screen pb-32 sm:pb-40' : 'h-screen overflow-hidden'}`}>
       {/* 1. Learning View (Overlay) - 표지의 "학습하기" 버튼으로 열리는 선택적 학습 화면 */}
       {showLearning && (
         <LearningView
@@ -3366,7 +3268,7 @@ const App = () => {
               </div>
               <div className="flex flex-col min-w-0">
                 <h1 className="text-base sm:text-lg md:text-xl font-black text-indigo-900 tracking-tight whitespace-nowrap leading-tight">
-                  나의 과학탐구활동 보고서<span className="hidden md:inline text-xs md:text-sm font-bold text-indigo-400 ml-1.5">5-6학년용 🔬</span>
+                  나의 과학탐구활동 보고서<span className="hidden md:inline text-xs md:text-sm font-bold text-indigo-400 ml-1.5">3-4학년용 🌱</span>
                 </h1>
                 <div className="flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold border flex-shrink-0 ${
