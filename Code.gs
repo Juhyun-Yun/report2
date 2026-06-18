@@ -1,3 +1,31 @@
+/**
+ * ============================================================
+ * © 2026 GEG 화성(깊이 e끌림). All rights reserved.
+ *
+ * 본 코드는 「저작권법」상 보호받는 저작물입니다.
+ * - 복제권(제16조)·공중송신권(제18조)·배포권(제20조)은
+ *   저작권자에게 있습니다.
+ * - 정식 경로로 받은 이용자라도 코드의 무단 복제·재배포·
+ *   재판매·리브랜딩은 허용되지 않습니다.
+ * - 무단 이용 시 「저작권법」 제136조(5년 이하 징역 또는
+ *   5천만 원 이하 벌금) 및 제125조(손해배상) 적용 대상이
+ *   될 수 있습니다.
+ * - 이용 문의: bacusiki777@gmail.com, for2102@jimj.kr
+ * ============================================================
+ */
+
+// 빌드 서명
+const _BUILD_SIG = 'GEGHS-DEEPE-2026';
+
+// 출처 확인용 함수
+function getBuildInfo() {
+  return {
+    sig: _BUILD_SIG,
+    owner: 'GEG 화성(깊이 e끌림)',
+    year: 2026
+  };
+}
+
 /***********************************************************************
  * 과학탐구 활동 보고서 — 선생님 시트 연동 스크립트 (Code.gs)
  * ---------------------------------------------------------------------
@@ -17,15 +45,13 @@
  ***********************************************************************/
 
 // ── 시트/폴더 이름 (원하면 바꿔도 됩니다) ──────────────────────────
-var GUIDE_SHEET  = '📖 선생님 가이드'; // 따라 하기 안내 탭
 var ROSTER_SHEET = '학생 명단';        // 기본 명단 탭 이름
 // 아래 후보 중 "먼저 있는" 탭을 학생 명단으로 사용한다. (이미 만들어 둔 탭과 호환)
 var ROSTER_ALIASES = ['학생 명단', '학생명단', '명단'];
 var SUBMIT_SHEET = '제출';   // 제출물이 기록되는 탭 이름 (없으면 자동 생성)
 var FOLDER_PROP_KEY = 'submitFolderId';
 
-// 앱(index.html)의 [선생님 설정] 비밀번호와 똑같이 적어주세요.
-// 이 값이 '📖 선생님 가이드' 탭에 안내로 표시됩니다.
+// 앱(index.html)의 [선생님 설정] 비밀번호 (사용 설명 탭에 표시됩니다)
 var TEACHER_PASSCODE = '1234';
 
 // ── 제출 탭의 열 순서 ────────────────────────────────────────────
@@ -39,17 +65,17 @@ var SUBMIT_HEADERS = [
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   var sub = ui.createMenu('📋 탐구활동 보고서')
-    .addItem('초기 설정 (가이드·명단·제출 탭 만들기)', 'setupSheets');
+    .addItem('초기 설정 (사용 설명·명단·제출 탭 만들기)', 'setupSheets');
   ui.createMenu('탐구활동 보고서')
     .addSubMenu(sub)
     .addToUi();
 }
 
-// "📖 선생님 가이드", "학생 명단", "제출" 탭을 준비한다.
+// "사용 설명", "학생 명단", "제출" 탭을 준비한다.
 function setupSheets() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  ensureGuideSheet_(ss); // 맨 앞 탭으로
+  setupGuideSheet(); // '사용 설명' 탭 생성 (맨 앞으로 이동)
 
   // 이미 명단 탭(학생 명단/명단 등)이 있으면 그대로 사용하고 건드리지 않는다.
   var roster = getRosterSheet_(ss);
@@ -64,13 +90,13 @@ function setupSheets() {
   ensureSubmitSheet_(ss);
   cleanupSampleRoster_(ss); // 예전에 자동 생성된 샘플 "명단" 탭 정리
 
-  var guide = ss.getSheetByName(GUIDE_SHEET);
-  if (guide) guide.activate();
+  var guideSheet = ss.getSheetByName('사용 설명');
+  if (guideSheet) guideSheet.activate();
 
   SpreadsheetApp.getUi().alert(
     '준비 완료',
-    '“📖 선생님 가이드” 탭을 그대로 보고 따라 하시면 됩니다.\n' +
-    '학생은 “' + roster.getName() + '” 탭의 명단으로 연동됩니다.',
+    '"사용 설명" 탭을 확인하여 설정을 완료해 주세요.\n' +
+    '학생은 "' + roster.getName() + '" 탭의 명단으로 연동됩니다.',
     SpreadsheetApp.getUi().ButtonSet.OK
   );
 }
@@ -105,150 +131,196 @@ function cleanupSampleRoster_(ss) {
   }
 }
 
-// 선생님이 그대로 보고 따라 할 수 있는 "색깔 가이드" 탭을 만든다.
-function ensureGuideSheet_(ss) {
-  var sh = ss.getSheetByName(GUIDE_SHEET);
-  if (!sh) sh = ss.insertSheet(GUIDE_SHEET, 0);
-  else sh.clear();
-  ss.setActiveSheet(sh);
-  ss.moveActiveSheet(1); // 맨 앞으로
+/*=====================================================================
+ * 사용 설명 탭 생성
+ *====================================================================*/
+function setupGuideSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var OLD_NAMES = ['📋 사용법', '사용 설명', '📖 선생님 가이드'];
+  var NEW_NAME  = '사용 설명';
+
+  // 안전 삭제: 고유 임시 탭을 먼저 생성하여 유일 탭 삭제 오류 방지
+  var tempName = '_guide_tmp_' + Date.now();
+  var existingTemp = ss.getSheetByName(tempName);
+  if (existingTemp) ss.deleteSheet(existingTemp);
+  var tmpSheet = ss.insertSheet(tempName);
+
+  for (var d = 0; d < OLD_NAMES.length; d++) {
+    var old = ss.getSheetByName(OLD_NAMES[d]);
+    if (old) ss.deleteSheet(old);
+  }
+
+  tmpSheet.setName(NEW_NAME);
+  ss.setActiveSheet(tmpSheet);
+  ss.moveActiveSheet(1);
+  var sh = tmpSheet;
 
   sh.setHiddenGridlines(true);
-  sh.setColumnWidth(1, 46);   // 번호/아이콘 배지
-  sh.setColumnWidth(2, 740);  // 본문
+  sh.setTabColor('#1A237E');
 
-  var r = 1;
+  // ── 내용 구성 (2D 배열, 열: A=항목/단계, B=내용/역할, C=주의사항) ──
+  var rows = [];
+  var pos  = {};
 
-  // ── 제목 ──
-  band_(sh, r, '📖 선생님 가이드 — 과학탐구 활동 보고서',
-    { bg: '#1A237E', fg: '#FFFFFF', size: 16, bold: true, height: 50 });
-  r++;
-  // ── 소개 ──
-  band_(sh, r, '이 보고서함은 선생님 한 분만의 것입니다. 학생 명단과 제출물(PDF·그래프)은 모두 선생님 구글 계정에만 저장돼요. 아래 4단계를 한 번만 하면 됩니다. (약 3분)',
-    { bg: '#E8EAF6', fg: '#303F9F', size: 10, height: 48 });
-  r++;
+  // 제목
+  pos.title = rows.length;
+  rows.push(['과학탐구 활동 보고서 — 시트 사용 설명', '', '']);
+  rows.push(['', '', '']);
 
-  // ── 선생님 설정 비밀번호 (학생에게 비공개) ──
-  band_(sh, r, '🔑  앱 [선생님 설정] 비밀번호 :   ' + TEACHER_PASSCODE,
-    { bg: '#FFE082', fg: '#5D4037', size: 13, bold: true, height: 38 });
-  r++;
-  band_(sh, r, '학생이 설정에 들어가지 못하게 막는 비밀번호예요. 학생에게는 알려주지 마세요. (앱에서 [선생님 설정]을 열 때 입력)',
-    { bg: '#FFF8E1', fg: '#8A6D3B', size: 9, height: 26 });
-  r++;
-  r = gap_(sh, r);
+  // 선생님 설정 비밀번호 안내
+  pos.passcode = rows.length;
+  rows.push(['앱 [선생님 설정] 비밀번호 :   ' + TEACHER_PASSCODE, '', '']);
+  pos.passcodeNote = rows.length;
+  rows.push(['학생이 선생님 설정에 들어가지 못하게 막는 비밀번호입니다. 학생에게는 알려주지 마세요.', '', '']);
+  rows.push(['', '', '']);
 
-  // ── 단계 카드 (번호 배지 + 색 본문) ──
-  var steps = [
-    { num: '1', head: '#10B981', bodyBg: '#E8F5E9', bodyFg: '#1B5E20',
-      title: '학생 명단 입력',
-      lines: ['아래 “학생 명단” 탭에서 번호(A열)와 이름(B열)을 적습니다. 여기 적은 학생이 그대로 앱 드롭다운에 연동돼요. (팀·모둠으로 운영하면 “팀” 칸도 채우세요.)'] },
-    { num: '2', head: '#2563EB', bodyBg: '#E3F2FD', bodyFg: '#0D47A1',
-      title: 'Apps Script 열기',
-      lines: ['상단 메뉴에서  [확장 프로그램] ▸ [Apps Script]  를 누릅니다.'] },
-    { num: '3', head: '#F59E0B', bodyBg: '#FFF8E1', bodyFg: '#7A4F01',
-      title: '웹 앱으로 배포  (한 번만)',
-      lines: [
-        '①  오른쪽 위  [배포] ▸ [새 배포]',
-        '②  톱니바퀴(⚙)를 눌러 유형  “웹 앱”  선택',
-        '③  실행: “나”      /      액세스 권한: “모든 사용자”',
-        '④  [배포]  클릭',
-        '⑤  (처음이면) 권한 화면 →  [고급] ▸ [(안전하지 않음)으로 이동] ▸ [허용]',
-        '⑥  배포 후 보이는 “웹 앱 URL”(끝이 /exec)을  복사'
-      ],
-      note: '※ 내가 만든 내 시트라서 안전합니다. 이 권한 화면은 처음 한 번만 나옵니다.' },
-    { num: '4', head: '#7C3AED', bodyBg: '#F3E8FF', bodyFg: '#4A148C',
-      title: '앱에 주소 붙여넣기',
-      lines: [
-        '①  학생들이 쓰는 앱 주소를 엽니다.',
-        '②  첫 화면의  [⚙ 선생님 설정 · 연결하기]  버튼을 누릅니다.',
-        '③  복사한 웹 앱 URL을 붙여넣고  [저장].'
-      ] },
-    { num: '5', head: '#0EA5E9', bodyBg: '#E0F2FE', bodyFg: '#075985',
-      title: '학생에게 “링크” 공유  (중요)',
-      lines: [
-        '①  [저장]하면 설정 화면에 “학생에게 공유할 링크”가 나옵니다.  옆의  [복사]  버튼을 누르세요.',
-        '②  그 링크를 학급 게시판·메신저 등으로 학생에게 보냅니다.',
-        '③  학생은 링크만 열면 설정 없이 바로 자기 이름을 고를 수 있어요.'
-      ],
-      note: '※ 반드시 “?api=” 가 들어간 이 링크를 공유하세요. 맨 주소(?api= 없는 주소)만 주면 다른 컴퓨터·태블릿에서는 명단이 보이지 않습니다.' }
-  ];
-  for (var i = 0; i < steps.length; i++) {
-    r = sectionCard_(sh, r, steps[i].num, steps[i].num + '단계.  ' + steps[i].title, steps[i]);
+  // 섹션 1: 사본을 만든 뒤 설정하기
+  pos.sec1 = rows.length;
+  rows.push(['1. 사본을 만든 뒤 설정하기', '', '']);
+  pos.sec1th = rows.length;
+  rows.push(['단계', '내용', '']);
+  pos.sec1r0 = rows.length;
+  rows.push(['①',
+    '"학생 명단" 탭의 예시 내용을 지우고 우리 반 학생의 번호(A열)와 이름(B열)을 입력합니다. 팀·모둠으로 운영한다면 팀(C열)도 입력하세요.',
+    '']);
+  rows.push(['②',
+    '확장 프로그램 → Apps Script → 배포 → 새 배포 → 웹앱 → 액세스: 모든 사용자 → 배포',
+    '']);
+  rows.push(['③',
+    '처음 1회만 진행합니다. 본인이 만든 사본이므로 안전합니다.\n' +
+    '⑴ \'승인 필요\'에서 \'권한 검토\'를 선택합니다.\n' +
+    '⑵ 본인 계정을 선택합니다.\n' +
+    '⑶ \'확인되지 않은 앱\' 화면에서 왼쪽 아래 \'고급\'을 누른 뒤 \'(프로젝트 이름)(으)로 이동\'을 선택합니다.\n' +
+    '⑷ 화면 맨 아래의 \'허용\'을 선택합니다.\n' +
+    '⑸ 배포된 URL을 확인합니다.\n' +
+    '※ \'고급\'이 보이지 않으면 창을 최대화합니다.\n' +
+    '※ 반드시 해당 시트의 사본을 만든 계정으로 진행합니다.',
+    '']);
+  rows.push(['④',
+    '학생들이 쓰는 앱 주소를 엽니다.\n' +
+    '첫 화면의 [⚙ 선생님 설정] 버튼을 누릅니다. (위에 안내된 비밀번호 입력)\n' +
+    '배포된 웹앱 URL을 붙여넣고 [저장]합니다.',
+    '']);
+  rows.push(['⑤',
+    '[저장]하면 설정 화면에 "학생에게 공유할 링크"가 나타납니다. 옆의 [복사] 버튼을 누르세요.\n' +
+    '복사된 링크를 학급 게시판·메신저 등으로 학생에게 보냅니다.\n' +
+    '학생은 링크만 열면 설정 없이 바로 자기 이름을 고를 수 있습니다.\n' +
+    '※ 반드시 "?api=" 가 포함된 이 링크를 공유하세요. 일반 앱 주소(?api= 없는 주소)만 주면 다른 기기에서는 명단이 보이지 않습니다.',
+    '']);
+  pos.sec1r1 = rows.length - 1;
+  rows.push(['', '', '']);
+
+  // 섹션 2: 탭 목록
+  pos.sec2 = rows.length;
+  rows.push(['2. 탭 목록', '', '']);
+  pos.sec2th = rows.length;
+  rows.push(['탭 이름', '역할', '주의사항']);
+  pos.sec2r0 = rows.length;
+  rows.push(['사용 설명',
+    '앱 설정 방법과 각 탭의 사용 방법 안내',
+    '탭 이름을 변경하거나 삭제하지 마세요.']);
+  rows.push(['학생 명단',
+    '학생 번호, 이름, 팀 정보를 저장하고 앱 화면의 학생 선택 목록에 연동합니다.',
+    '헤더 행(번호·이름·팀)을 수정하지 마세요. 2행부터 학생 정보를 입력하세요. 탭 이름을 변경하면 안 됩니다.']);
+  rows.push(['제출',
+    '학생이 보고서를 제출하면 제출 시각, 이름, 활동 유형, 제목, 내용 등이 자동으로 기록됩니다.',
+    '앱이 자동으로 기록하는 탭입니다. 데이터를 임의로 삭제하거나 열 순서를 변경하지 마세요. 탭 이름을 변경하면 안 됩니다.']);
+  pos.sec2r1 = rows.length - 1;
+  rows.push(['', '', '']);
+
+  // 섹션 3: 시트의 내용 수정 안내
+  pos.sec3 = rows.length;
+  rows.push(['3. 시트의 내용 수정 안내', '', '']);
+  pos.sec3r = rows.length;
+  rows.push([
+    '데이터나 설정을 변경할 때는 앱 화면이 아니라 해당 시트 탭에서 직접 수정하세요. ' +
+    '탭 이름은 코드와 연결되어 있으므로 삭제하거나 변경하지 마세요.',
+    '', '']);
+  rows.push(['', '', '']);
+
+  // 섹션 4: 메뉴·버튼 사용법
+  pos.sec4 = rows.length;
+  rows.push(['4. 메뉴·버튼 사용법', '', '']);
+  pos.sec4th = rows.length;
+  rows.push(['메뉴 항목', '하는 일', '실행 시점']);
+  pos.sec4r0 = rows.length;
+  rows.push([
+    '탐구활동 보고서 → 📋 탐구활동 보고서 → 초기 설정 (사용 설명·명단·제출 탭 만들기)',
+    '"사용 설명", "학생 명단", "제출" 탭을 생성합니다.',
+    '처음 설정할 때 또는 안내 탭을 다시 만들 필요가 있을 때']);
+  pos.sec4r1 = rows.length - 1;
+  rows.push(['', '', '']);
+
+  // 섹션 5: 저작권 안내
+  pos.sec5 = rows.length;
+  rows.push(['5. 저작권 안내', '', '']);
+  pos.sec5r = rows.length;
+  rows.push([
+    '본 구글 시트 및 관련 자료(앱, 코드, 콘텐츠 포함)의 저작권은 GEG 화성(깊이 e끌림)에게 있습니다.\n\n' +
+    '1. 본 자료는 책을 구입한 자에 한해 이용이 허락됩니다(교사일 경우는 해당 학급, 학부모일 경우 자녀). ' +
+    '정상 경로로 구매하거나 배포받은 이용자라 하더라도 앱 코드의 무단 수정 및 2차 배포는 허용되지 않습니다.\n\n' +
+    '2. 다음 행위를 금합니다.\n' +
+    '· 무단 복제·전송·배포·공유(타인에게 시트 링크 또는 사본 전달 포함)\n' +
+    '· 영리 목적의 사용 또는 배포(학원에서의 사용 포함)\n' +
+    '· 영리 목적의 재판매 또는 재배포\n' +
+    '· 무단 수정·편집을 통한 2차적 저작물 작성\n\n' +
+    '3. 「저작권법」 제136조(벌칙) 제1항 제1호에 따라, 저작재산권을 복제·공연·공중송신·전시·배포·대여·2차적저작물 작성의 방법으로 침해한 자는 5년 이하의 징역 또는 5천만원 이하의 벌금에 처하거나 이를 병과할 수 있습니다.\n\n' +
+    'ⓒ 2026 GEG 화성(깊이 e끌림)',
+    '', '']);
+
+  // ── setValues()로 한 번에 입력 ──
+  sh.getRange(1, 1, rows.length, 3).setValues(rows);
+
+  // ── 열 너비 ──
+  sh.setColumnWidth(1, 220);
+  sh.setColumnWidth(2, 400);
+  sh.setColumnWidth(3, 300);
+
+  // ── 전체 줄바꿈 + 세로 정렬 위 ──
+  sh.getRange(1, 1, rows.length, 3).setWrap(true).setVerticalAlignment('top');
+
+  // ── 제목 서식 (14pt, 굵게, 강조색) ──
+  sh.getRange(pos.title + 1, 1, 1, 3)
+    .merge()
+    .setFontSize(14).setFontWeight('bold')
+    .setFontColor('#FFFFFF').setBackground('#1A237E');
+
+  // ── 비밀번호 강조 서식 ──
+  sh.getRange(pos.passcode + 1, 1, 1, 3)
+    .merge()
+    .setFontSize(13).setFontWeight('bold')
+    .setBackground('#FFE082').setFontColor('#5D4037');
+  sh.getRange(pos.passcodeNote + 1, 1, 1, 3)
+    .merge()
+    .setBackground('#FFF8E1').setFontColor('#8A6D3B').setFontSize(9);
+
+  // ── 섹션 헤더 서식 (병합, 굵게, 배경색) ──
+  var secList = [pos.sec1, pos.sec2, pos.sec3, pos.sec4, pos.sec5];
+  for (var si = 0; si < secList.length; si++) {
+    sh.getRange(secList[si] + 1, 1, 1, 3)
+      .merge()
+      .setFontWeight('bold')
+      .setBackground('#C5CAE9').setFontColor('#1A237E');
   }
 
-  // ── 정보 섹션 ──
-  var infos = [
-    { num: '▶', head: '#0D9488', bodyBg: '#E0F2F1', bodyFg: '#004D40',
-      title: '이제부터',
-      lines: [
-        '• 학생은 앱에서 자기 이름을 골라 보고서를 작성하고  [제출]  하면, “제출” 탭과 드라이브 폴더에 자동으로 쌓입니다.',
-        '• 학생·교실 기기에는 위 5단계의  [복사]한 학생용 링크(?api= 포함)  를 공유하면, 설정 화면 없이 바로 이름 선택으로 들어갑니다.',
-        '• 같은 기기에서는 한 번 연결하면 다음부터는 링크 없이 열어도 기억됩니다. (다른 기기에서는 매번 링크가 필요)'
-      ] },
-    { num: '?', head: '#E11D48', bodyBg: '#FFE4E6', bodyFg: '#881337',
-      title: '자주 묻는 것',
-      lines: [
-        '• 데이터는 누가 보나요?  →  선생님 본인만. 시트도 PDF도 선생님 드라이브에 저장됩니다.',
-        '• 다른 컴퓨터·태블릿에서 명단이 안 떠요.  →  ① 학생에게 “?api=” 가 든 링크를 줬는지, ② 배포 액세스가 “모든 사용자”인지 확인하세요.',
-        '• 명단 열 순서를 바꿔도 되나요?  →  됩니다. “번호 / 이름 / 팀” 글자가 든 제목을 자동으로 찾습니다.',
-        '• 그래프가 안 보여요.  →  잠시 후 새로고침. 안 보여도 “보고서(PDF)” 링크에 전체 내용이 들어 있습니다.',
-        '• 코드를 수정했어요.  →  [배포] ▸ [배포 관리] ▸ 편집(연필) ▸ 버전 “새 버전” ▸ [배포]  해야 반영됩니다.'
-      ] }
-  ];
-  for (var k = 0; k < infos.length; k++) {
-    r = sectionCard_(sh, r, infos[k].num, infos[k].title, infos[k]);
-  }
+  // ── 표 헤더 서식 (옅은 배경, 굵게) ──
+  sh.getRange(pos.sec1th + 1, 1, 1, 2).setFontWeight('bold').setBackground('#E8EAF6');
+  sh.getRange(pos.sec2th + 1, 1, 1, 3).setFontWeight('bold').setBackground('#E8EAF6');
+  sh.getRange(pos.sec4th + 1, 1, 1, 3).setFontWeight('bold').setBackground('#E8EAF6');
 
-  return sh;
-}
+  // ── 표 전체 테두리 ──
+  sh.getRange(pos.sec1th + 1, 1, pos.sec1r1 - pos.sec1th + 1, 2)
+    .setBorder(true, true, true, true, true, true);
+  sh.getRange(pos.sec2th + 1, 1, pos.sec2r1 - pos.sec2th + 1, 3)
+    .setBorder(true, true, true, true, true, true);
+  sh.getRange(pos.sec4th + 1, 1, pos.sec4r1 - pos.sec4th + 1, 3)
+    .setBorder(true, true, true, true, true, true);
 
-// 색 헤더 띠 + 색 본문 줄들(+선택 메모)로 한 섹션을 그린다. 다음 행 번호 반환.
-function sectionCard_(sh, r, badge, headerText, s) {
-  // 헤더 띠
-  sh.getRange(r, 1).setValue(badge)
-    .setBackground(s.head).setFontColor('#FFFFFF').setFontSize(13).setFontWeight('bold')
-    .setHorizontalAlignment('center').setVerticalAlignment('middle');
-  sh.getRange(r, 2).setValue(headerText)
-    .setBackground(s.head).setFontColor('#FFFFFF').setFontSize(12).setFontWeight('bold')
-    .setVerticalAlignment('middle').setWrap(true);
-  sh.setRowHeight(r, 32);
-  r++;
+  // ── 섹션 3 내용 셀 3열 병합 ──
+  sh.getRange(pos.sec3r + 1, 1, 1, 3).merge();
 
-  // 본문 줄들
-  for (var j = 0; j < s.lines.length; j++) {
-    sh.getRange(r, 1, 1, 2).setBackground(s.bodyBg);
-    sh.getRange(r, 2).setValue(s.lines[j])
-      .setFontColor(s.bodyFg).setFontSize(10).setVerticalAlignment('middle').setWrap(true);
-    sh.setRowHeight(r, 32);
-    r++;
-  }
-
-  // 메모(주의) 줄
-  if (s.note) {
-    sh.getRange(r, 1, 1, 2).setBackground('#FFE0B2');
-    sh.getRange(r, 2).setValue(s.note)
-      .setFontColor('#8A4B00').setFontSize(9).setFontStyle('italic')
-      .setVerticalAlignment('middle').setWrap(true);
-    sh.setRowHeight(r, 26);
-    r++;
-  }
-
-  return gap_(sh, r);
-}
-
-// A:B 한 행을 한 가지 색으로 채우고 본문을 쓴다.
-function band_(sh, r, text, o) {
-  sh.getRange(r, 1, 1, 2).setBackground(o.bg);
-  var cell = sh.getRange(r, 2).setValue(text).setVerticalAlignment('middle').setWrap(true);
-  cell.setFontColor(o.fg).setFontSize(o.size);
-  if (o.bold) cell.setFontWeight('bold');
-  sh.setRowHeight(r, o.height || 26);
-}
-
-// 얇은 간격 행
-function gap_(sh, r) {
-  sh.setRowHeight(r, 10);
-  return r + 1;
+  // ── 저작권 셀 3열 병합 ──
+  sh.getRange(pos.sec5r + 1, 1, 1, 3).merge();
 }
 
 /*=====================================================================
@@ -297,7 +369,7 @@ function doPost(e) {
 function getRoster_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = getRosterSheet_(ss);
-  if (!sh) throw new Error('“학생 명단” 탭이 없어요. 메뉴 ▸ 탐구활동 보고서 ▸ 📋 탐구활동 보고서 ▸ 초기 설정을 눌러 주세요.');
+  if (!sh) throw new Error('"학생 명단" 탭이 없어요. 메뉴 ▸ 탐구활동 보고서 ▸ 📋 탐구활동 보고서 ▸ 초기 설정을 눌러 주세요.');
 
   var values = sh.getDataRange().getValues();
   if (values.length < 2) return [];

@@ -22,11 +22,9 @@
   </script>
   <style>
     /* ───── 스케일 기반 반응형 ─────
-       html font-size를 viewport에 비례시킴 → Tailwind의 모든 rem 기반 사이즈가 함께 스케일됨.
-       기준: 가로 1280px / 세로 720px 정도(가로 태블릿) 에서 16px.
-       작은 폰부터 큰 모니터까지 끊김 없이 부드럽게 변함. */
+       세로형 기본. 폰트 기준: 세로 폰(390px) → 14px, 태블릿 세로(768px) → 16px, 데스크톱 → 최대 20px */
     html {
-      font-size: clamp(12px, 1.6vmin + 0.4vw, 22px);
+      font-size: clamp(13px, 2vw + 0.5vh, 20px);
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
@@ -36,55 +34,22 @@
       overscroll-behavior: none;
     }
 
-    /* 스크롤은 되지만 스크롤바는 숨김 */
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-
-    /* ───── 가로 모드 전제 / 세로 모드 회전 안내 ─────
-       작은 화면(폰·소형 태블릿)이 세로일 때만 안내. 큰 화면(데스크톱)은 무시. */
-    .rotate-prompt { display: none; }
-    @media (orientation: portrait) and (max-width: 900px) {
-      .rotate-prompt {
-        display: flex;
-        position: fixed;
-        inset: 0;
-        z-index: 99999;
-        background: linear-gradient(135deg, #312e81 0%, #1e293b 100%);
-        color: white;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 2rem;
-        gap: 1rem;
-      }
-      /* 세로일 때 본 앱은 숨겨서 회전 안내만 보이게 */
-      #root { visibility: hidden; }
-    }
-    .rotate-icon {
-      font-size: 5rem;
-      animation: rotateHint 2.4s ease-in-out infinite;
-      transform-origin: center;
-    }
-    @keyframes rotateHint {
-      0%, 100% { transform: rotate(0deg); }
-      40% { transform: rotate(-90deg); }
-      60% { transform: rotate(-90deg); }
-    }
-
     /* ───── 탐구활동 설명용 글꼴 ─────
        Jua: 통통한 제목용 / Gowun Dodum: 가독성 좋은 둥근 본문용 / Gaegu: 손글씨 강조용 */
     .font-title { font-family: 'Jua', 'Gowun Dodum', system-ui, sans-serif; letter-spacing: -0.01em; }
     .font-body  { font-family: 'Gowun Dodum', 'Pretendard', system-ui, sans-serif; letter-spacing: -0.003em; word-break: keep-all; }
     .font-hand  { font-family: 'Gaegu', 'Gowun Dodum', cursive; }
+
+    /* ───── FAB 메뉴 스크롤 ───── */
+    .fab-menu-scroll {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+    .fab-menu-scroll::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
-  <div class="rotate-prompt" aria-hidden="true">
-    <div class="rotate-icon">📱</div>
-    <div style="font-size: 1.4rem; font-weight: 800;">화면을 가로로 돌려 주세요</div>
-    <div style="font-size: 0.95rem; opacity: 0.7;">이 앱은 가로 화면에서 사용하도록 만들어졌어요.</div>
-  </div>
   <div id="root"></div>
   <script type="text/babel" data-type="module" data-presets="react">
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
@@ -355,25 +320,12 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight
   const textareaRef = useRef(null);
 
   useLayoutEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const measure = () => {
-      ta.style.height = 'auto';
-      let h = ta.scrollHeight;
-      // 값이 비어 있으면 예시(placeholder) 전체가 보이도록 높이를 맞춘다.
-      if (!value && placeholder) {
-        ta.value = placeholder;
-        ta.style.height = 'auto';
-        h = Math.max(h, ta.scrollHeight);
-        ta.value = '';
-        ta.style.height = 'auto';
-      }
-      ta.style.height = `${h}px`;
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [value, placeholder]);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${scrollHeight}px`;
+    }
+  }, [value]);
 
   return (
     <textarea
@@ -381,7 +333,7 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className={`${className} overflow-hidden resize-none`} 
+      className={`${className} overflow-hidden resize-none`}
       style={{ minHeight: minHeight, ...style }}
       rows={1}
     />
@@ -603,33 +555,20 @@ const TeacherSetupScreen = ({ initialUrl, onSave, onCancel, canCancel }) => {
   const trimmed = url.trim();
   const valid = /^https:\/\/script\.google\.com\//.test(trimmed);
 
-  // 저장 여부와 상관없이, 입력한 URL로 만들어지는 "학생용 링크"를 미리 보여준다.
+  // 학생용 공유 링크: 현재 앱 주소 + ?api=웹앱URL
   const studentLink = valid
     ? `${window.location.origin}${window.location.pathname}?api=${encodeURIComponent(trimmed)}`
     : '';
 
-  const copyStudentLink = async () => {
+  const copyLink = async () => {
     if (!studentLink) return;
     try {
       await navigator.clipboard.writeText(studentLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
     } catch (e) {
-      // 클립보드 API가 막힌 환경(구형 브라우저 등) 대비
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = studentLink;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      } catch (e2) {
-        window.prompt('아래 학생용 링크를 복사하세요.', studentLink);
-        return;
-      }
+      window.prompt('아래 링크를 복사해서 학생들에게 전달하세요:', studentLink);
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -678,34 +617,21 @@ const TeacherSetupScreen = ({ initialUrl, onSave, onCancel, canCancel }) => {
             </div>
           )}
 
-          {/* 학생용 링크 미리보기 + 복사 — 이 링크를 그대로 학생에게 공유 */}
+          {/* 학생용 링크 (URL이 유효할 때) */}
           {valid && (
             <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 mb-2">
-                <Users size={14} className="flex-shrink-0" />
-                학생에게 공유할 링크 (이 링크를 받은 학생은 설정 없이 바로 이름 선택)
+              <div className="text-[11px] font-bold text-emerald-700 mb-1.5 flex items-center gap-1.5">
+                <Users size={13} /> 학생용 링크 (이 링크로 들어오면 자동 연결돼요)
               </div>
-              <div className="flex items-stretch gap-2">
-                <input
-                  type="text"
-                  value={studentLink}
-                  readOnly
-                  onFocus={(e) => e.target.select()}
-                  className="flex-1 min-w-0 bg-white border-2 border-emerald-200 rounded-xl px-3 py-2 text-[11px] font-medium text-slate-700 focus:outline-none focus:border-emerald-400 break-all"
-                />
-                <button
-                  onClick={copyStudentLink}
-                  className={`flex items-center justify-center gap-1 px-3 rounded-xl text-xs font-black whitespace-nowrap transition-all active:scale-95 shadow-sm ${
-                    copied ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white hover:bg-emerald-600'
-                  }`}
-                >
-                  {copied ? <><Check size={14} /> 복사됨</> : <><Copy size={14} /> 복사</>}
-                </button>
+              <div className="text-[11px] text-slate-600 bg-white rounded-lg p-2 break-all border border-emerald-100 mb-2">
+                {studentLink}
               </div>
-              <div className="text-[10px] text-emerald-600 mt-2 leading-relaxed">
-                ⚠️ 맨 주소가 아니라 <b>위 링크(<code>?api=</code> 포함)를 그대로</b> 공유해야 다른 컴퓨터·태블릿에서도 명단이 보여요.
-                저장하면 이 주소가 자동으로 적용됩니다.
-              </div>
+              <button
+                onClick={copyLink}
+                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-black bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all"
+              >
+                {copied ? <><Check size={14} /> 복사됐어요!</> : <><Copy size={14} /> 학생용 링크 복사</>}
+              </button>
             </div>
           )}
 
@@ -839,23 +765,42 @@ const StudentSelectionScreen = ({ configured, students, loading, error, onRetry,
             나의 과학탐구활동 보고서 · 3-4학년용 🌱
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-800">
-            이름을 선택해 주세요
+            {configured ? '이름을 선택해 주세요' : '시작 준비'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            {hasTeams
-              ? '팀을 먼저 고른 뒤 이름을 선택해요.'
-              : '드롭다운에서 본인 이름을 선택해 시작합니다.'}
+            {!configured
+              ? '먼저 선생님이 스프레드시트를 연결해야 해요.'
+              : (hasTeams
+                  ? '팀을 먼저 고른 뒤 이름을 선택해요.'
+                  : '드롭다운에서 본인 이름을 선택해 시작합니다.')}
           </p>
         </div>
 
-        {loading && (
+        {/* 아직 연결 전: 선생님에게 설정 안내 */}
+        {!configured && (
+          <div className="bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-5 text-center">
+            <Settings className="text-indigo-400 mx-auto mb-2" size={30} />
+            <div className="text-sm font-bold text-slate-700 mb-1">연결된 스프레드시트가 없어요</div>
+            <div className="text-xs text-slate-500 mb-3 leading-relaxed">
+              선생님: 아래 <b>「선생님 설정」</b>을 눌러<br />Apps Script 배포 주소를 입력해 주세요.
+            </div>
+            <button
+              onClick={onOpenSettings}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 active:scale-95"
+            >
+              <Settings size={14} /> 선생님 설정 열기
+            </button>
+          </div>
+        )}
+
+        {configured && loading && (
           <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-10">
             <Loader2 className="animate-spin" size={32} />
             <span className="text-sm font-bold">학생 명단을 불러오는 중…</span>
           </div>
         )}
 
-        {!loading && error && (
+        {configured && !loading && error && (
           <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 text-center">
             <AlertCircle className="text-red-500 mx-auto mb-2" size={32} />
             <div className="text-sm font-bold text-red-700 mb-1">명단을 불러올 수 없어요</div>
@@ -872,7 +817,7 @@ const StudentSelectionScreen = ({ configured, students, loading, error, onRetry,
           </div>
         )}
 
-        {!loading && !error && (
+        {configured && !loading && !error && (
           <div className="space-y-4">
             {hasTeams && (
               <div>
@@ -911,11 +856,6 @@ const StudentSelectionScreen = ({ configured, students, loading, error, onRetry,
               </select>
               {hasTeams && !selectedTeam && (
                 <div className="text-[11px] text-slate-400 mt-1">팀을 먼저 선택해 주세요.</div>
-              )}
-              {students.length === 0 && (
-                <div className="text-[11px] text-slate-400 mt-1">
-                  아직 명단이 없어요. 선생님께 문의하세요.
-                </div>
               )}
             </div>
 
@@ -966,115 +906,164 @@ const CoverSection = ({ data, onUpdate, onToggleActivity, onStart, onLearn, isSt
   const canStart = selectedTypes.length > 0;
 
   return (
-    <div 
-      id="report-header" 
+    <div
+      id="report-header"
       className={`bg-white border-4 border-indigo-200 shadow-xl overflow-hidden relative group transition-all duration-700 ease-in-out flex flex-col items-center
-        ${isStarted ? 'rounded-3xl mb-8 sm:mb-12 p-6 justify-center' : 'fixed inset-0 z-[100] m-0 rounded-none h-[100dvh] w-full p-3 sm:p-5 justify-center overflow-hidden'}`}
+        ${isStarted ? 'rounded-3xl mb-8 sm:mb-12 p-6 justify-center' : 'fixed inset-0 z-[100] m-0 rounded-none h-[100dvh] w-full p-4 flex justify-between overflow-y-auto'}`}
     >
        {/* Decorative Top Bar */}
        <div className={`bg-indigo-400 w-full absolute top-0 left-0 transition-all duration-700 ${isStarted ? 'h-4' : 'h-2 sm:h-3'}`}></div>
-       
-       <div className={`flex flex-col items-center text-center w-full transition-all duration-500 ${!isStarted ? 'max-w-xl flex-1 justify-center gap-3 animate-fade-in-up' : 'max-w-3xl my-auto'}`}>
+
+       <div className={`flex flex-col items-center text-center w-full max-w-3xl transition-all duration-500 ${!isStarted ? 'flex-1 justify-center gap-1 sm:gap-2 animate-fade-in-up' : 'my-auto'}`}>
 
          {/* Subtitle */}
-         <div className="font-bold text-indigo-500 tracking-widest uppercase text-[10px] sm:text-xs mb-1">
+         <div className={`font-bold text-indigo-500 tracking-widest uppercase mb-1 transition-all ${isStarted ? 'text-[10px] sm:text-xs' : 'text-[10px] sm:text-xs mt-2'}`}>
            나의 과학탐구활동 보고서 · 3-4학년용 🌱
          </div>
 
          {/* Icon */}
-         <div className={`bg-indigo-100 rounded-full shadow-inner mb-1 flex items-center justify-center ${isStarted ? 'p-2 w-10 h-10' : 'p-2.5 w-11 h-11 sm:w-12 sm:h-12'}`}>
-           <BookOpen className={`text-indigo-600 ${isStarted ? 'w-5 h-5' : 'w-6 h-6'}`} />
+         <div className={`bg-indigo-100 rounded-full shadow-inner mb-2 transition-all duration-500 flex items-center justify-center
+           ${isStarted ? 'p-2 w-10 h-10' : 'p-3 w-12 h-12 sm:w-14 sm:h-14 mt-0'}`}>
+           <BookOpen className={`text-indigo-600 ${isStarted ? 'w-5 h-5' : 'w-6 h-6 sm:w-7 sm:h-7'}`} />
          </div>
 
-         {/* Title — 시작 전엔 밑줄, 시작 후엔 밑줄 없이 (이미 작성됨) */}
+         {/* Title Input */}
          <AutoResizeTextarea
             value={data.title}
             onChange={(e) => handleChange('title', e.target.value)}
-            minHeight={isStarted ? "40px" : "46px"}
-            className={`w-full text-center font-black text-slate-800 rounded-lg transition-all placeholder:text-slate-400 placeholder:font-bold leading-tight ${
-              isStarted
-                ? 'bg-transparent border-none text-xl sm:text-2xl'
-                : 'bg-indigo-50/40 border-b-[3px] border-indigo-300 hover:border-indigo-400 focus:border-indigo-500 focus:bg-indigo-50/60 text-2xl sm:text-3xl px-3 py-1'
-            }`}
-            placeholder="여기에 탐구 주제를 질문으로 써요"
+            className={`w-full text-center font-black text-slate-800 bg-transparent border-b-2 border-transparent hover:border-indigo-100 focus:border-indigo-400 focus:bg-indigo-50/30 rounded-lg transition-all placeholder:text-slate-300 leading-tight
+              ${isStarted ? 'text-xl sm:text-2xl min-h-[36px] mb-0' : 'text-xl sm:text-3xl min-h-[40px] sm:min-h-[50px] p-0'}`}
+            placeholder="탐구 주제를 질문으로 써요"
          />
 
-         {/* 기본 정보 — 사각 박스 (시작 전에만) */}
-         {!isStarted && (
-           <div className="w-full grid grid-cols-3 gap-2 text-sm cover-info-grid mt-2">
-              <div className="bg-white border-2 border-slate-200 rounded-xl px-3.5 py-2.5 flex flex-col text-left focus-within:border-indigo-400 transition-colors">
-                 <span className="text-xs sm:text-sm font-extrabold text-slate-600 flex items-center gap-1.5 mb-1"><Users size={14} className="text-indigo-500" /> 팀명</span>
-                 <input type="text" value={data.team} onChange={(e) => handleChange('team', e.target.value)}
-                    className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-400 w-full text-base"
-                    placeholder="멋진 팀 이름" />
-              </div>
-              <div className="bg-white border-2 border-slate-200 rounded-xl px-3.5 py-2.5 flex flex-col text-left focus-within:border-green-400 transition-colors">
-                 <span className="text-xs sm:text-sm font-extrabold text-slate-600 flex items-center gap-1.5 mb-1"><User size={14} className="text-green-500" /> 이름</span>
-                 <input type="text" value={data.author} onChange={(e) => handleChange('author', e.target.value)}
-                    className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-400 w-full text-base"
-                    placeholder="이름" />
-              </div>
-              <div className="bg-white border-2 border-slate-200 rounded-xl px-3.5 py-2.5 flex flex-col text-left focus-within:border-orange-400 transition-colors">
-                 <span className="text-xs sm:text-sm font-extrabold text-slate-600 flex items-center gap-1.5 mb-1"><Calendar size={14} className="text-orange-500" /> 탐구 기간</span>
-                 <input type="text" value={data.period} onChange={(e) => handleChange('period', e.target.value)}
-                    className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-400 w-full text-base"
-                    placeholder="2026.01.01 ~ 01.05" />
-              </div>
-           </div>
-         )}
+         {/* 기본 정보 — 시작 후에는 숨김 */}
+         <div className={`w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm cover-info-grid transition-all duration-500 ${isStarted ? 'hidden opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
+
+            {/* Team Name */}
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100 hover:border-indigo-200 transition-colors">
+               <div className="bg-white p-1 rounded-md text-indigo-500 shadow-sm">
+                 <Users size={14} />
+               </div>
+               <div className="flex-1 flex flex-col text-left">
+                 <span className="text-[9px] font-bold text-slate-400 uppercase">팀명 (Team)</span>
+                 <input
+                   type="text"
+                   value={data.team}
+                   onChange={(e) => handleChange('team', e.target.value)}
+                   className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-300 w-full text-sm"
+                   placeholder="멋진 팀 이름"
+                 />
+               </div>
+            </div>
+
+            {/* Name */}
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100 hover:border-green-200 transition-colors">
+               <div className="bg-white p-1 rounded-md text-green-500 shadow-sm">
+                 <User size={14} />
+               </div>
+               <div className="flex-1 flex flex-col text-left">
+                 <span className="text-[9px] font-bold text-slate-400 uppercase">이름 (Name)</span>
+                 <input
+                   type="text"
+                   value={data.author}
+                   onChange={(e) => handleChange('author', e.target.value)}
+                   className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-300 w-full text-sm"
+                   placeholder="이름"
+                 />
+               </div>
+            </div>
+
+            {/* Period */}
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100 hover:border-orange-200 transition-colors sm:col-span-2">
+               <div className="bg-white p-1 rounded-md text-orange-500 shadow-sm">
+                 <Calendar size={14} />
+               </div>
+               <div className="flex-1 flex flex-col text-left">
+                 <span className="text-[9px] font-bold text-slate-400 uppercase">탐구 기간</span>
+                 <input
+                   type="text"
+                   value={data.period}
+                   onChange={(e) => handleChange('period', e.target.value)}
+                   className="bg-transparent font-bold text-slate-700 focus:outline-none placeholder:text-slate-300 w-full text-sm"
+                   placeholder="2026.01.01 ~ 2026.01.05"
+                 />
+               </div>
+            </div>
+         </div>
 
          {/* 활동 선택 (시작 전에만) */}
-         {!isStarted && (
-           <div className="w-full bg-white rounded-2xl shadow-lg border-2 border-indigo-300 overflow-hidden flex flex-col mt-2">
-              <div className="py-2.5 text-center text-sm font-black text-white bg-indigo-500 border-b-2 border-indigo-300">
-                 🌱 어떤 탐구 활동을 할까요? <span className="font-bold text-indigo-100">(여러 개 선택)</span>
-              </div>
-              <div className="p-2.5 bg-slate-50/50">
-                 <div className="grid grid-cols-3 gap-2 w-full">
-                    {basicActivities.map(act => {
-                       const selected = selectedTypes.includes(act.label);
-                       return (
-                          <button key={act.id} onClick={() => onToggleActivity(act.label)}
-                             className={`relative flex flex-col items-center justify-center p-2 rounded-xl border-2 shadow-sm transition-all active:scale-95 h-16 sm:h-20 ${
-                                selected
-                                   ? `${act.selBg} ${act.selBorder} shadow-md ring-2 ring-offset-1 ring-indigo-200`
-                                   : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'
-                             }`}>
-                             {selected && (<div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center shadow">✓</div>)}
-                             <act.icon size={22} className={`mb-1 ${act.color}`} />
-                             <span className="text-xs font-bold text-slate-700">{act.label}</span>
-                          </button>
-                       );
-                    })}
-                 </div>
-              </div>
-              <div className="p-2.5 border-t border-slate-100 flex items-stretch gap-2">
-                 <button onClick={onLearn}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-black bg-white text-indigo-600 border-2 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 transition-all shadow-sm active:scale-95 whitespace-nowrap"
-                    title="탐구활동 내용을 먼저 살펴봐요">
-                    <BookOpenCheck size={16} /> 학습하기
-                 </button>
-                 <button onClick={onStart} disabled={!canStart}
-                    className={`flex-1 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
-                       canStart
-                          ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'
-                          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    }`}>
-                    <ArrowRightCircle size={16} />
-                    {canStart ? `시작하기${selectedTypes.length > 1 ? ` (${selectedTypes.length}개)` : ''}` : '활동을 선택하세요'}
-                 </button>
-              </div>
-           </div>
-         )}
+         <div className={`w-full max-w-lg bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden flex flex-col flex-1 min-h-0 transition-all duration-500 mt-2 ${isStarted ? 'hidden opacity-0 h-0' : 'opacity-100 h-auto'}`}>
+            <div className="py-2.5 text-center text-sm font-black text-white bg-indigo-500 border-b border-slate-100 flex-shrink-0">
+               🌱 어떤 탐구 활동을 할까요? <span className="font-bold text-indigo-100">(여러 개 선택)</span>
+            </div>
+            <div className="p-2 bg-slate-50/50 flex-shrink-0">
+               <div className="grid grid-cols-3 gap-2 w-full">
+                  {basicActivities.map(act => {
+                    const selected = selectedTypes.includes(act.label);
+                    return (
+                      <button
+                        key={act.id}
+                        onClick={() => onToggleActivity(act.label)}
+                        className={`relative flex flex-col items-center justify-center p-2 rounded-lg border-2 shadow-sm transition-all active:scale-95 h-16 sm:h-20 ${
+                          selected
+                            ? `${act.selBg} ${act.selBorder} shadow-md ring-2 ring-offset-1 ring-indigo-200`
+                            : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'
+                        }`}
+                      >
+                        {selected && (
+                          <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center shadow">✓</div>
+                        )}
+                        <act.icon size={20} className={`mb-1 ${act.color}`} />
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-700">{act.label}</span>
+                      </button>
+                    );
+                  })}
+               </div>
+            </div>
 
-         {/* 안내 문구 (시작 전에만) */}
+            {/* 학습하기 + 시작하기 버튼 */}
+            <div className="p-2 border-t border-slate-100 flex-shrink-0 flex items-stretch gap-2">
+               <button
+                 onClick={onLearn}
+                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-black bg-white text-indigo-600 border-2 border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+                 title="탐구활동 내용을 먼저 살펴봐요"
+               >
+                 <BookOpenCheck size={16} /> 학습하기
+               </button>
+               <button
+                 onClick={onStart}
+                 disabled={!canStart}
+                 className={`flex-1 py-2 rounded-lg text-sm font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
+                   canStart
+                     ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg'
+                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                 }`}
+               >
+                 <ArrowRightCircle size={16} />
+                 {canStart
+                   ? `시작하기${selectedTypes.length > 1 ? ` (${selectedTypes.length}개 활동)` : ''}`
+                   : '활동을 선택하세요'}
+               </button>
+            </div>
+         </div>
+
+         {/* Footer text only visible on landing */}
          {!isStarted && (
-            <div className="text-[10px] text-slate-400 mt-1 font-medium">
+            <div className="text-[9px] sm:text-[10px] text-slate-400 mt-1 font-medium flex-shrink-0">
                관찰·측정·분류 중에서 하고 싶은 활동을 여러 개 골라도 좋아요.
             </div>
          )}
 
-         {/* 활동 배지 (시작 후) */}
+         {/* Decorative dots — 콘텐츠 흐름 안에서 스크롤됨 */}
+         {!isStarted && (
+            <div className="w-full h-3 bg-slate-100 border-t border-slate-200 flex justify-center items-center gap-2 mt-2 flex-shrink-0">
+               <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+               <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+               <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+            </div>
+         )}
+
+         {/* Compact Badges in Header Mode */}
          {isStarted && selectedTypes.length > 0 && (
             <div className="mt-2 inline-flex flex-wrap items-center justify-center gap-1 animate-fade-in">
                {selectedTypes.map(t => (
@@ -1090,12 +1079,6 @@ const CoverSection = ({ data, onUpdate, onToggleActivity, onStart, onLearn, isSt
 
        </div>
 
-       {/* Decorative Bottom Bar */}
-       <div className="absolute bottom-0 left-0 w-full h-2 sm:h-3 bg-slate-100 border-t border-slate-200 flex justify-center items-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-slate-300"></div>
-          <div className="w-1 h-1 rounded-full bg-slate-300"></div>
-          <div className="w-1 h-1 rounded-full bg-slate-300"></div>
-       </div>
     </div>
   );
 };
@@ -2568,7 +2551,7 @@ const App = () => {
       content: '',
       color: 'blue',
       isDeletable: false,
-      placeholder: '궁금한 점에 대한 나의 예상을 "~ 할 것이다." 형식으로 써보세요.\n\n예) (관찰) 강낭콩 싹은 자라면서 줄기가 점점 길어질 것이다.\n예) (측정) 우리 모둠 친구들의 한 뼘 길이는 비슷할 것이다.\n예) (분류) 주운 나뭇잎은 모양에 따라 세 무리로 나눌 수 있을 것이다.'
+      placeholder: '궁금한 점에 대한 나의 예상을 "~ 할 것이다." 형식으로 써보세요.\n예) 강낭콩 싹은 자라면서 줄기가 점점 길어질 것이다.'
     },
     { 
       id: 2, 
@@ -2619,6 +2602,14 @@ const App = () => {
   const [editingState, setEditingState] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef(null);
+  const menuScrollRef = useRef(null);
+
+  // 메뉴가 열릴 때 FAB 쪽(아래)으로 자동 스크롤
+  useEffect(() => {
+    if (isMenuOpen && menuScrollRef.current) {
+      menuScrollRef.current.scrollTop = menuScrollRef.current.scrollHeight;
+    }
+  }, [isMenuOpen]);
 
   // ── 스프레드시트 연동 상태 ──────────────────────────────
   // 연결할 Apps Script 웹앱 URL (코드에 하드코딩하지 않음 → 선생님이 설정)
@@ -2626,8 +2617,7 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPasscode, setShowPasscode] = useState(false);
   const [students, setStudents] = useState([]);
-  // 연결돼 있을 때만 처음부터 로딩 표시 (미설정이면 학생 화면을 바로 보여줌)
-  const [rosterLoading, setRosterLoading] = useState(!!SHEET_API_URL);
+  const [rosterLoading, setRosterLoading] = useState(true);
   const [rosterError, setRosterError] = useState(null);
   // 학생 선택은 매 접속마다 다시 받도록 localStorage에서 복원하지 않음
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -2664,13 +2654,6 @@ const App = () => {
     setApiUrl(url);        // 상태 갱신 → 재렌더
     setShowSettings(false);
     setSelectedStudent(null);
-    // 주소창에 ?api= 를 반영 → "지금 이 페이지 주소"가 곧 학생용 링크가 됨.
-    // (선생님이 이 주소를 그대로 공유하면 학생은 자동 연결됨)
-    try {
-      const u = new URL(window.location.href);
-      u.searchParams.set('api', url);
-      window.history.replaceState(null, '', u.toString());
-    } catch (e) {}
     // 새 URL로 명단 로드 (위 useEffect가 apiUrl 변화로 자동 호출하지만, 같은 값 재저장 대비 명시 호출)
     setTimeout(() => loadRoster(), 0);
   };
@@ -2692,7 +2675,7 @@ const App = () => {
         content: '',
         color: 'blue',
         isDeletable: false,
-        placeholder: '궁금한 점에 대한 나의 예상을 "~ 할 것이다." 형식으로 써보세요.\n\n예) (관찰) 강낭콩 싹은 자라면서 줄기가 점점 길어질 것이다.\n예) (측정) 우리 모둠 친구들의 한 뼘 길이는 비슷할 것이다.\n예) (분류) 주운 나뭇잎은 모양에 따라 세 무리로 나눌 수 있을 것이다.'
+        placeholder: '궁금한 점에 대한 나의 예상을 "~ 할 것이다." 형식으로 써보세요.\n예) 강낭콩 싹은 자라면서 줄기가 점점 길어질 것이다.'
       },
       {
         id: 2,
@@ -2911,15 +2894,15 @@ const App = () => {
     setEditingState({ blockId, imageIndex, imageSrc });
   };
 
-  const handleSaveEdit = (newSrc) => {
+  const handleSaveEdit = async (newSrc) => {
     if (editingState) {
       const { blockId, imageIndex } = editingState;
       const block = blocks.find(b => b.id === blockId);
       if (block && block.type === 'photo') {
         const rawContent = block.content || [];
         const normalized = rawContent.map(item => typeof item === 'string' ? { src: item, caption: '' } : item);
-        
-        normalized[imageIndex].src = newSrc;
+        const compressed = await compressImage(newSrc);
+        normalized[imageIndex].src = compressed;
         updateBlockContent(blockId, normalized);
       }
       setEditingState(null);
@@ -3248,7 +3231,7 @@ const App = () => {
   }
 
   return (
-    <div className={`bg-slate-100 font-sans relative ${isStarted ? 'min-h-screen pb-32 sm:pb-40' : 'h-screen overflow-hidden'}`}>
+    <div className="min-h-screen bg-slate-100 font-sans pb-32 sm:pb-40 relative">
       {/* 1. Learning View (Overlay) - 표지의 "학습하기" 버튼으로 열리는 선택적 학습 화면 */}
       {showLearning && (
         <LearningView
@@ -3433,26 +3416,31 @@ const App = () => {
 
       {/* 4. Floating Toolbar - Visible only after start */}
       {!isGenerating && isStarted && (
-        <div className="fixed bottom-6 right-6 flex flex-col-reverse items-end gap-3 z-40">
-          
+        <div className="fixed bottom-6 right-6 z-[55]">
+
+          {/* Expanded Menu Items — 스크롤 컨테이너(fixed)와 flex 레이아웃을 분리 */}
+          <div
+            ref={menuScrollRef}
+            className={`fab-menu-scroll absolute bottom-full right-0 mb-3 max-h-[calc(100dvh-11rem)] transition-all duration-300 origin-bottom-right ${isMenuOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'}`}
+          >
+            <div className="flex flex-col gap-3 items-end py-1">
+              <ToolButton icon={FileText} label="결론" color="bg-purple-100 text-purple-700 hover:bg-purple-200 ring-purple-200" onClick={() => addBlock('conclusion')} />
+              <ToolButton icon={Brush} label="그리기" color="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 ring-yellow-200" onClick={() => addBlock('draw')} />
+              <ToolButton icon={Timer} label="타이머" color="bg-red-100 text-red-700 hover:bg-red-200 ring-red-200" onClick={() => addBlock('timer')} />
+              <ToolButton icon={BarChart2} label="데이터" color="bg-green-100 text-green-700 hover:bg-green-200 ring-green-200" onClick={() => addBlock('data')} />
+              <ToolButton icon={ZoomIn} label="돋보기" color="bg-pink-100 text-pink-700 hover:bg-pink-200 ring-pink-200" onClick={() => addBlock('magnifier')} />
+              <ToolButton icon={Camera} label="사진" color="bg-teal-100 text-teal-700 hover:bg-teal-200 ring-teal-200" onClick={() => addBlock('photo')} />
+              <ToolButton icon={Pencil} label="글쓰기" color="bg-blue-100 text-blue-700 hover:bg-blue-200 ring-blue-200" onClick={() => addBlock('text')} />
+            </div>
+          </div>
+
           {/* Main FAB (Menu Toggle) */}
-          <button 
+          <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className={`w-14 h-14 sm:w-16 sm:h-16 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:bg-indigo-700 active:scale-95 ${isMenuOpen ? 'rotate-45' : 'rotate-0'}`}
           >
             <Plus size={32} />
           </button>
-
-          {/* Expanded Menu Items */}
-          <div className={`flex flex-col gap-3 transition-all duration-300 origin-bottom ${isMenuOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-50 translate-y-10 pointer-events-none'}`}>
-            <ToolButton icon={FileText} label="결론" color="bg-purple-100 text-purple-700 hover:bg-purple-200 ring-purple-200" onClick={() => addBlock('conclusion')} />
-            <ToolButton icon={Brush} label="그리기" color="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 ring-yellow-200" onClick={() => addBlock('draw')} />
-            <ToolButton icon={Timer} label="타이머" color="bg-red-100 text-red-700 hover:bg-red-200 ring-red-200" onClick={() => addBlock('timer')} />
-            <ToolButton icon={BarChart2} label="데이터" color="bg-green-100 text-green-700 hover:bg-green-200 ring-green-200" onClick={() => addBlock('data')} />
-            <ToolButton icon={ZoomIn} label="돋보기" color="bg-pink-100 text-pink-700 hover:bg-pink-200 ring-pink-200" onClick={() => addBlock('magnifier')} />
-            <ToolButton icon={Camera} label="사진" color="bg-teal-100 text-teal-700 hover:bg-teal-200 ring-teal-200" onClick={() => addBlock('photo')} />
-            <ToolButton icon={Pencil} label="글쓰기" color="bg-blue-100 text-blue-700 hover:bg-blue-200 ring-blue-200" onClick={() => addBlock('text')} />
-          </div>
         </div>
       )}
 
