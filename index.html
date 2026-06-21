@@ -2284,21 +2284,28 @@ const MagnifierModule = ({ content, onUpdate }) => {
       const video = videoRef.current;
       const w = video.videoWidth;
       const h = video.videoHeight;
+      if (!w || !h) return;
 
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-
-      const ctx = canvas.getContext('2d');
-
+      // 줌이 적용된(가운데를 확대한) 영역
       const sW = w / zoom;
       const sH = h / zoom;
       const sX = (w - sW) / 2;
       const sY = (h - sH) / 2;
 
-      ctx.drawImage(video, sX, sY, sW, sH, 0, 0, w, h);
+      // 시트 업로드가 안정적이도록 해상도를 줄여 저장한다. (긴 변 최대 1000px, JPEG)
+      // → 사진 한 장 용량이 작아져 여러 장·여러 학생이 올려도 안 끊김.
+      const MAX_DIM = 1000;
+      const scale = Math.min(1, MAX_DIM / Math.max(sW, sH));
+      const outW = Math.max(1, Math.round(sW * scale));
+      const outH = Math.max(1, Math.round(sH * scale));
 
-      const imageUrl = canvas.toDataURL('image/png');
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, sX, sY, sW, sH, 0, 0, outW, outH);
+
+      const imageUrl = canvas.toDataURL('image/jpeg', 0.8);
       onUpdate([...images, { src: imageUrl, caption: '' }]);
     }
   };
@@ -2487,16 +2494,17 @@ const App = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false); // Menu toggle state
 
   // [NEW] Save to localStorage on change
+  //  - 사진이 많아 저장공간이 꽉 차도(QuotaExceededError) 앱이 멈추지 않도록 try/catch 처리.
   useEffect(() => {
-    localStorage.setItem('sl_blocks', JSON.stringify(blocks));
+    try { localStorage.setItem('sl_blocks', JSON.stringify(blocks)); } catch (e) {}
   }, [blocks]);
 
   useEffect(() => {
-    localStorage.setItem('sl_cover', JSON.stringify(cover));
+    try { localStorage.setItem('sl_cover', JSON.stringify(cover)); } catch (e) {}
   }, [cover]);
 
   useEffect(() => {
-    localStorage.setItem('sl_isStarted', JSON.stringify(isStarted));
+    try { localStorage.setItem('sl_isStarted', JSON.stringify(isStarted)); } catch (e) {}
   }, [isStarted]);
 
   const [editingState, setEditingState] = useState(null);
