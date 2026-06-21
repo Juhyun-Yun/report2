@@ -2421,6 +2421,13 @@ const MagnifierModule = ({ content, onUpdate }) => {
   );
 };
 
+// 시트를 연동하지 않아도 바로 쓸 수 있도록 한 기본 명단 (학생1~학생30)
+const DEFAULT_STUDENTS = Array.from({ length: 30 }, (_, i) => ({
+  id: String(i + 1),
+  name: '학생' + (i + 1),
+  team: ''
+}));
+
 // ----------------------------------------------------------------------
 // 4. Main App Component
 // ----------------------------------------------------------------------
@@ -2501,7 +2508,8 @@ const App = () => {
   const [apiUrl, setApiUrl] = useState(SHEET_API_URL);
   const [showSettings, setShowSettings] = useState(false);
   const [showPasscode, setShowPasscode] = useState(false);
-  const [students, setStudents] = useState([]);
+  // 시트 연동이 없어도 기본 명단(학생1~학생30)으로 바로 입장할 수 있게 한다.
+  const [students, setStudents] = useState(DEFAULT_STUDENTS);
   // 연결돼 있을 때만 처음부터 로딩 표시 (미설정이면 학생 화면을 바로 보여줌)
   const [rosterLoading, setRosterLoading] = useState(!!SHEET_API_URL);
   const [rosterError, setRosterError] = useState(null);
@@ -2516,22 +2524,29 @@ const App = () => {
   }, []);
 
   const loadRoster = React.useCallback(async () => {
+    // 연동이 없으면 기본 명단(학생1~학생30)으로 바로 입장
+    if (!sheetApi.enabled()) {
+      setStudents(DEFAULT_STUDENTS);
+      setRosterError(null);
+      setRosterLoading(false);
+      return;
+    }
     setRosterLoading(true);
     setRosterError(null);
     try {
-      if (!sheetApi.enabled()) {
-        throw new Error('연결된 시트가 없습니다.\n선생님 설정에서 Apps Script 웹앱 URL을 입력해 주세요.');
-      }
       const list = await sheetApi.fetchRoster();
-      setStudents(list);
+      // 시트에 명단이 비어 있으면 기본 명단으로 대체
+      setStudents(list && list.length ? list : DEFAULT_STUDENTS);
     } catch (err) {
+      // 연결 실패해도 기본 명단으로 진행 (앱은 계속 사용 가능)
+      setStudents(DEFAULT_STUDENTS);
       setRosterError(err.message || String(err));
     } finally {
       setRosterLoading(false);
     }
   }, []);
 
-  // URL이 설정되어 있을 때만 명단을 불러옴
+  // 연동 주소가 있으면 실제 명단을 불러온다. (없으면 기본 명단 유지)
   useEffect(() => { if (apiUrl) loadRoster(); }, [loadRoster, apiUrl]);
 
   // 선생님이 시트 주소를 저장 → 새로고침 없이 즉시 반영하고 명단을 다시 불러온다.
